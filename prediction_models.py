@@ -176,18 +176,19 @@ def build_global_feature_extractor(num_global_features, use_transform_net, bn):
                  strides=(1, 1),
                  activation=tf.nn.relu,
                  padding='valid',
-                 data_format='channels_last')(net1 + net)
+                 data_format='channels_last')(net1)
 
     if bn:
         net2 = BatchNormalization()(net2)
 
     if use_transform_net:
         with tf.compat.v1.variable_scope('transform_net2') as sc:
-            transform = feature_transform_net(net2, K=64)
-        net_transformed = tf.matmul(tf.squeeze(net2, axis=[2]), transform)
+            transform = feature_transform_net(net1 + net2, K=64)
+        net_transformed = tf.matmul(tf.squeeze(net1 + net2, axis=[2]), transform)
         net2 = tf.expand_dims(net_transformed, [2])
 
-    net3 = Conv2D(filters=128,
+    # Changed from 128 -> 256 for skip connections
+    net3 = Conv2D(filters=256,
                  kernel_size=(1, 1),
                  strides=(1, 1),
                  activation=tf.nn.relu,
@@ -197,22 +198,22 @@ def build_global_feature_extractor(num_global_features, use_transform_net, bn):
     if bn:
         net3 = BatchNormalization()(net3)
 
-    net = Conv2D(filters=256,
+    net4 = Conv2D(filters=256,
                  kernel_size=(1, 1),
                  strides=(1, 1),
                  activation=tf.nn.relu,
                  padding='valid',
-                 data_format='channels_last')(net2 + net3)
+                 data_format='channels_last')(net3)
 
     if bn:
-        net = BatchNormalization()(net)
+        net4 = BatchNormalization()(net4)
 
     net = Conv2D(filters=512,
                  kernel_size=(1, 1),
                  strides=(1, 1),
                  activation=tf.nn.relu,
                  padding='valid',
-                 data_format='channels_last')(net)
+                 data_format='channels_last')(net3 + net4)
 
     if bn:
         net = BatchNormalization()(net)
@@ -438,5 +439,5 @@ def build_recursive_prediction_model(single_frame_prediction_model):
 if __name__ == '__main__':
     import numpy as np
     input_point_set = np.zeros(shape=(32, NUM_INPUT_FRAMES, 20, 2))
-    model = build_recursive_prediction_model(global_pointnet_lstm(use_transform_net=False))
+    model = build_recursive_prediction_model(global_pointnet_lstm(use_transform_net=True))
     model.summary()
