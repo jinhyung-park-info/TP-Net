@@ -9,8 +9,8 @@
 
 
 ### Introduction
-- In this repository we release code and data for our <model name (TBD)> as well as training and testing modules. 
-  To train, test, and visualize the results, please refer the <How To Run> section.
+- In this repository we release code and data for our (model name goes here) as well as a few training and testing modules.
+  To train, test, and visualize the results, please refer to "How To Run" section.
 
 ### How To Run
 **1. Configure Environment**
