@@ -260,11 +260,11 @@ def get_area_loss(ground_truth_pointset, predicted_pointset):
 
 def generate_fine_tuning_result_videos(simulation_model, real_model, num_input_frames, save_path, offset, fps, test_data_type):
 
-    global_losses_1 = np.array([0.0] * 60)
-    global_losses_2 = np.array([0.0] * 60)
+    global_losses_1 = np.array([0.0] * COMPARE_LENGTH)
+    global_losses_2 = np.array([0.0] * COMPARE_LENGTH)
 
-    global_area_losses_1 = np.array([0.0] * 60)
-    global_area_losses_2 = np.array([0.0] * 60)
+    global_area_losses_1 = np.array([0.0] * COMPARE_LENGTH)
+    global_area_losses_2 = np.array([0.0] * COMPARE_LENGTH)
 
     for case in REAL_WORLD_TEST_CASES:
 
@@ -341,17 +341,17 @@ def generate_fine_tuning_result_videos(simulation_model, real_model, num_input_f
         plt.savefig(os.path.join(save_path, 'area_loss_test_case_{}.png'.format(case)), dpi=600)
         plt.clf()
 
-        global_losses_1 += np.array(losses_1[:60])
-        global_losses_2 += np.array(losses_2[:60])
+        global_losses_1 += np.array(losses_1[:COMPARE_LENGTH])
+        global_losses_2 += np.array(losses_2[:COMPARE_LENGTH])
 
-        global_area_losses_1 += np.array(area_losses_1[:60])
-        global_area_losses_2 += np.array(area_losses_2[:60])
+        global_area_losses_1 += np.array(area_losses_1[:COMPARE_LENGTH])
+        global_area_losses_2 += np.array(area_losses_2[:COMPARE_LENGTH])
 
     # Average Loss Graph
     global_losses_1 /= len(REAL_WORLD_TEST_CASES)
     global_losses_2 /= len(REAL_WORLD_TEST_CASES)
-    plt.plot(timesteps[:60], global_losses_1.tolist(), label=f'before fine tuning')
-    plt.plot(timesteps[:60], global_losses_2.tolist(), label=f'after fine tuning')
+    plt.plot(timesteps[:COMPARE_LENGTH], global_losses_1.tolist(), label=f'before fine tuning')
+    plt.plot(timesteps[:COMPARE_LENGTH], global_losses_2.tolist(), label=f'after fine tuning')
     plt.xlabel('Timestep')
     plt.ylabel('Average Loss')
     plt.legend()
@@ -369,8 +369,8 @@ def generate_fine_tuning_result_videos(simulation_model, real_model, num_input_f
     # Average Area Loss Graph
     global_area_losses_1 /= len(REAL_WORLD_TEST_CASES)
     global_area_losses_2 /= len(REAL_WORLD_TEST_CASES)
-    plt.plot(timesteps[:60], global_area_losses_1.tolist(), label=f'before fine tuning')
-    plt.plot(timesteps[:60], global_area_losses_2.tolist(), label=f'after fine tuning')
+    plt.plot(timesteps[:COMPARE_LENGTH], global_area_losses_1.tolist(), label=f'before fine tuning')
+    plt.plot(timesteps[:COMPARE_LENGTH], global_area_losses_2.tolist(), label=f'after fine tuning')
     plt.xlabel('Timestep')
     plt.ylabel('Average Area Loss')
     plt.legend()
@@ -435,236 +435,6 @@ def convert_to_pixel_coordinates(predicted_pointset, distance, height):
 
     return sort_clockwise(pixel_pointset)
 
-"""
-def generate_rendered_videos(simulation_model, real_model, num_input_frames, save_path, offset, fps, test_data_type):
-
-    global_losses_1 = np.array([0.0] * 60)
-    global_losses_2 = np.array([0.0] * 60)
-
-    global_area_losses_1 = np.array([0.0] * 60)
-    global_area_losses_2 = np.array([0.0] * 60)
-
-    for case in REAL_WORLD_TEST_CASES:
-
-        print(f'=========== Testing Case #{case} =============')
-        distance, height = get_final_video_size(case)
-        video_size = ((1920 - distance + CROP_SIZE) * 3 + 100, 1080 - (height - CROP_SIZE))
-        output_video = cv2.VideoWriter(os.path.join(save_path, f'Test Case_{case}.MP4'), CODEC, fps, video_size)
-
-        frames_savepath = create_directory(os.path.join(save_path, f'Test Case {case}'))
-        background_image_1 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:, :1920 - distance + CROP_SIZE]
-        background_image_2 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:, :1920 - distance + CROP_SIZE]
-
-        ground_truth_base_path = os.path.join(REAL_DATA_PATH, '04_critical_frames_subtracted_cropped', f'case_{case}')
-
-        ground_truth_pointset = get_real_world_ground_truth_pointset(case, test_data_type)
-
-        input_info_1 = get_real_world_input_pointset(case, num_input_frames, offset, test_data_type)
-        input_info_2 = get_real_world_input_pointset(case, num_input_frames, offset, test_data_type)
-        first_frame_number, num_frames = find_case_info(ground_truth_base_path)
-
-        ground_truth_image = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', f'timestep_{first_frame_number}.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:, :1920 - distance + CROP_SIZE]
-        ground_truth_image = Image.fromarray(ground_truth_image)
-
-        merged = Image.new(mode="RGB", size=((1920 - distance + CROP_SIZE) * 3 + 100, 1080 - (height - CROP_SIZE)), color=(255, 255, 255))
-        merged.paste(im=ground_truth_image, box=(0, 0))
-        merged.paste(im=ground_truth_image, box=(1920 - distance + CROP_SIZE + 50, 0))
-        merged.paste(im=ground_truth_image, box=((1920 - distance + CROP_SIZE) * 2 + 100, 0))
-        merged = np.array(merged)
-        cv2.imwrite(os.path.join(frames_savepath, f'timestep_{0}.jpg'), merged)
-
-        timesteps = []
-        losses_1 = []
-        losses_2 = []
-        area_losses_1 = []
-        area_losses_2 = []
-
-        for i in range(20):
-            output_video.write(merged)
-
-        for timestep in range(0, num_input_frames * offset, offset):
-            ground_truth_image = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', f'timestep_{first_frame_number + timestep}.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:, :1920 - distance + CROP_SIZE]
-            ground_truth_image = Image.fromarray(ground_truth_image)
-
-            merged = Image.new(mode="RGB", size=((1920 - distance + CROP_SIZE) * 3 + 100, 1080 - (height - CROP_SIZE)), color=(255, 255, 255))
-            merged.paste(im=ground_truth_image, box=(0, 0))
-            merged.paste(im=ground_truth_image, box=(1920 - distance + CROP_SIZE + 50, 0))
-            merged.paste(im=ground_truth_image, box=((1920 - distance + CROP_SIZE) * 2 + 100, 0))
-            merged = np.array(merged)
-            cv2.imwrite(os.path.join(frames_savepath, f'timestep_{timestep}.jpg'), merged)
-            output_video.write(merged)
-
-        for timestep in tqdm(range(offset * num_input_frames, num_frames, offset)):
-            predicted_pointset_1 = real_model.predict(input_info_1)[0]
-            predicted_pointset_2 = simulation_model.predict(input_info_1)[0]
-
-            area_loss_2 = get_area_loss(np.array(ground_truth_pointset[timestep], dtype='float32'), predicted_pointset_1[0])
-            area_loss_1 = get_area_loss(np.array(ground_truth_pointset[timestep], dtype='float32'), predicted_pointset_2[0])
-
-            loss_2 = get_cd_loss_func(np.array([ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_1)
-            loss_1 = get_cd_loss_func(np.array([ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_2)
-
-            timesteps.append(timestep)
-            losses_1.append(loss_1)
-            losses_2.append(loss_2)
-
-            area_losses_1.append(area_loss_1)
-            area_losses_2.append(area_loss_2)
-
-            pixel_coordinates_1 = convert_to_pixel_coordinates(predicted_pointset_1[0], distance, height)
-            cv2.fillPoly(img=background_image_1, pts=[pixel_coordinates_1], color=(47, 164, 193))
-
-            pixel_coordinates_2 = convert_to_pixel_coordinates(predicted_pointset_2[0], distance, height)
-            cv2.fillPoly(img=background_image_2, pts=[pixel_coordinates_2], color=(47, 164, 193))
-
-            # concatenate with ground truth image for comparison
-            ground_truth_image = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', f'timestep_{first_frame_number + timestep}.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:, :1920 - distance + CROP_SIZE]
-            ground_truth_image = Image.fromarray(ground_truth_image)
-
-            merged = Image.new(mode="RGB", size=((1920 - distance + CROP_SIZE) * 3 + 100, 1080 - (height - CROP_SIZE)), color=(255, 255, 255))
-            merged.paste(im=ground_truth_image, box=(0, 0))
-            merged.paste(im=Image.fromarray(background_image_1), box=(1920 - distance + CROP_SIZE + 50, 0))
-            merged.paste(im=Image.fromarray(background_image_2), box=((1920 - distance + CROP_SIZE) * 2 + 100, 0))
-            merged = np.array(merged)
-
-            cv2.imwrite(os.path.join(frames_savepath, f'timestep_{timestep}.jpg'), merged)
-            output_video.write(merged)
-            input_info_1 = update_input_pointset(input_info_1, predicted_pointset_1)
-            input_info_2 = update_input_pointset(input_info_2, predicted_pointset_2)
-            del background_image_1, background_image_2
-            background_image_1 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:, :1920 - distance + CROP_SIZE]
-            background_image_2 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:, :1920 - distance + CROP_SIZE]
-
-        output_video.release()
-        cv2.destroyAllWindows()
-
-        plt.plot(timesteps, losses_1, label=f'before fine tuning')
-        plt.plot(timesteps, losses_2, label=f'after fine tuning')
-        plt.xlabel('Timestep')
-        plt.ylabel('Loss')
-        plt.legend()
-        plt.savefig(os.path.join(save_path, 'loss_test_case_{}.png'.format(case)), dpi=600)
-        plt.clf()
-
-        plt.plot(timesteps, area_losses_1, label=f'before fine tuning')
-        plt.plot(timesteps, area_losses_2, label=f'after fine tuning')
-        plt.xlabel('Timestep')
-        plt.ylabel('Area Loss')
-        plt.legend()
-        plt.savefig(os.path.join(save_path, 'area_loss_test_case_{}.png'.format(case)), dpi=600)
-        plt.clf()
-
-        global_losses_1 += np.array(losses_1[:60])
-        global_losses_2 += np.array(losses_2[:60])
-
-        global_area_losses_1 += np.array(area_losses_1[:60])
-        global_area_losses_2 += np.array(area_losses_2[:60])
-
-    # Average Loss Graph
-    global_losses_1 /= len(REAL_WORLD_TEST_CASES)
-    global_losses_2 /= len(REAL_WORLD_TEST_CASES)
-    plt.plot(timesteps[:60], global_losses_1.tolist(), label=f'before fine tuning')
-    plt.plot(timesteps[:60], global_losses_2.tolist(), label=f'after fine tuning')
-    plt.xlabel('Timestep')
-    plt.ylabel('Average Loss')
-    plt.legend()
-    plt.savefig(os.path.join(save_path, 'loss_average.png'), dpi=600)
-    plt.clf()
-
-    plt.plot(timesteps[:30], global_losses_1.tolist()[:30], label=f'before fine tuning')
-    plt.plot(timesteps[:30], global_losses_2.tolist()[:30], label=f'after fine tuning')
-    plt.xlabel('Timestep')
-    plt.ylabel('Average Loss')
-    plt.legend()
-    plt.savefig(os.path.join(save_path, 'loss_average_first_30_frames.png'), dpi=600)
-    plt.clf()
-
-    # Average Area Loss Graph
-    global_area_losses_1 /= len(REAL_WORLD_TEST_CASES)
-    global_area_losses_2 /= len(REAL_WORLD_TEST_CASES)
-    plt.plot(timesteps[:60], global_area_losses_1.tolist(), label=f'before fine tuning')
-    plt.plot(timesteps[:60], global_area_losses_2.tolist(), label=f'after fine tuning')
-    plt.xlabel('Timestep')
-    plt.ylabel('Average Area Loss')
-    plt.legend()
-    plt.savefig(os.path.join(save_path, 'area_loss_average.png'), dpi=600)
-    plt.clf()
-
-    plt.plot(timesteps[:30], global_area_losses_1.tolist()[:30], label=f'before fine tuning')
-    plt.plot(timesteps[:30], global_area_losses_2.tolist()[:30], label=f'after fine tuning')
-    plt.xlabel('Timestep')
-    plt.ylabel('Average Area Loss')
-    plt.legend()
-    plt.savefig(os.path.join(save_path, 'area_loss_average_first_30_frames.png'), dpi=600)
-    plt.clf()
-"""
-
-"""
-
-def generate_rendered_videos(simulation_model, real_model, num_input_frames, save_path, offset, fps, test_data_type):
-
-    for case in REAL_WORLD_TEST_CASES:
-
-        print(f'=========== Testing Case #{case} =============')
-        distance, height = get_final_video_size(case)
-        video_size = ((1920 - distance + CROP_SIZE) * 2 + 50, 1080 - (height - CROP_SIZE))
-        output_video = cv2.VideoWriter(os.path.join(save_path, f'Test Case_{case}.MP4'), CODEC, fps, video_size)
-
-        frames_savepath = create_directory(os.path.join(save_path, f'Test Case {case}'))
-        background_image_1 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:, :1920 - distance + CROP_SIZE]
-
-        ground_truth_base_path = os.path.join(REAL_DATA_PATH, '04_critical_frames_subtracted_cropped', f'case_{case}')
-
-        input_info_1 = get_real_world_input_pointset(case, num_input_frames, offset, test_data_type)
-        first_frame_number, num_frames = find_case_info(ground_truth_base_path)
-
-        ground_truth_image = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', f'timestep_{first_frame_number}.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:, :1920 - distance + CROP_SIZE]
-        ground_truth_image = Image.fromarray(ground_truth_image)
-
-        merged = Image.new(mode="RGB", size=((1920 - distance + CROP_SIZE) * 2 + 50, 1080 - (height - CROP_SIZE)), color=(255, 255, 255))
-        merged.paste(im=ground_truth_image, box=(0, 0))
-        merged.paste(im=ground_truth_image, box=(1920 - distance + CROP_SIZE + 50, 0))
-        merged = np.array(merged)
-        cv2.imwrite(os.path.join(frames_savepath, f'timestep_{0}.jpg'), merged)
-
-        for i in range(20):
-            output_video.write(merged)
-
-        for timestep in range(0, num_input_frames * offset, offset):
-            ground_truth_image = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', f'timestep_{first_frame_number + timestep}.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:, :1920 - distance + CROP_SIZE]
-            ground_truth_image = Image.fromarray(ground_truth_image)
-
-            merged = Image.new(mode="RGB", size=((1920 - distance + CROP_SIZE) * 2 + 50, 1080 - (height - CROP_SIZE)), color=(255, 255, 255))
-            merged.paste(im=ground_truth_image, box=(0, 0))
-            merged.paste(im=ground_truth_image, box=(1920 - distance + CROP_SIZE + 50, 0))
-            merged = np.array(merged)
-            cv2.imwrite(os.path.join(frames_savepath, f'timestep_{timestep}.jpg'), merged)
-            output_video.write(merged)
-
-        for timestep in tqdm(range(offset * num_input_frames, num_frames, offset)):
-            predicted_pointset_1 = real_model.predict(input_info_1)[0]
-
-            pixel_coordinates_1 = convert_to_pixel_coordinates(predicted_pointset_1[0], distance, height)
-            cv2.fillPoly(img=background_image_1, pts=[pixel_coordinates_1], color=(47, 164, 193))
-
-            # concatenate with ground truth image for comparison
-            ground_truth_image = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', f'timestep_{first_frame_number + timestep}.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:, :1920 - distance + CROP_SIZE]
-            ground_truth_image = Image.fromarray(ground_truth_image)
-
-            merged = Image.new(mode="RGB", size=((1920 - distance + CROP_SIZE) * 2 + 50, 1080 - (height - CROP_SIZE)), color=(255, 255, 255))
-            merged.paste(im=ground_truth_image, box=(0, 0))
-            merged.paste(im=Image.fromarray(background_image_1), box=(1920 - distance + CROP_SIZE + 50, 0))
-            merged = np.array(merged)
-
-            cv2.imwrite(os.path.join(frames_savepath, f'timestep_{timestep}.jpg'), merged)
-            output_video.write(merged)
-            input_info_1 = update_input_pointset(input_info_1, predicted_pointset_1)
-            del background_image_1
-            background_image_1 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:, :1920 - distance + CROP_SIZE]
-
-        output_video.release()
-        cv2.destroyAllWindows()
-"""
 
 def generate_rendered_videos(simulation_model, real_model, num_input_frames, save_path, offset, fps, test_data_type):
 
@@ -745,49 +515,24 @@ def generate_rendered_videos(simulation_model, real_model, num_input_frames, sav
         cv2.destroyAllWindows()
 
 
-def compare_baseline_ours_rendered(real_model_1, real_model_2, real_model_3, num_input_frames, save_path, offset, fps, data_type_1, data_type_2, data_type_3):
+def compare_baseline_ours_rendered(real_model_1, real_model_2, real_model_3,
+                                   num_input_frames, save_path, offset, fps,
+                                   data_type_1, data_type_2, data_type_3, output_video):
 
-    global_losses_1 = np.array([0.0] * 60)
-    global_losses_2 = np.array([0.0] * 60)
-    global_losses_3 = np.array([0.0] * 60)
+    global_losses_1 = np.array([0.0] * COMPARE_LENGTH)
+    global_losses_2 = np.array([0.0] * COMPARE_LENGTH)
+    global_losses_3 = np.array([0.0] * COMPARE_LENGTH)
 
-    global_area_losses_1 = np.array([0.0] * 60)
-    global_area_losses_2 = np.array([0.0] * 60)
-    global_area_losses_3 = np.array([0.0] * 60)
+    global_area_losses_1 = np.array([0.0] * COMPARE_LENGTH)
+    global_area_losses_2 = np.array([0.0] * COMPARE_LENGTH)
+    global_area_losses_3 = np.array([0.0] * COMPARE_LENGTH)
 
-    for case in REAL_WORLD_TEST_CASES:
+    chamfer_graph_save_path = create_directory(os.path.join(save_path, 'Loss Graph', 'Chamfer'))
+    area_loss_graph_save_path = create_directory(os.path.join(save_path, 'Loss Graph', 'Area Loss'))
+
+    for case in REAL_WORLD_VAL_CASES + REAL_WORLD_TEST_CASES:
 
         print(f'=========== Testing Case #{case} =============')
-        distance, height = get_final_video_size(case)
-        video_size = (575 * 4 + 120, 520)
-        # video_size = ((228 + CROP_SIZE) * 2 + 50, 1040)
-        # 1150 * 2 + 50
-        # 1040
-        output_video = cv2.VideoWriter(os.path.join(save_path, f'Test Case_{case}.MP4'), CODEC, fps, video_size)
-
-        frames_savepath = create_directory(os.path.join(save_path, f'Test Case {case}'))
-        background_image_1 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
-        background_image_2 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
-        background_image_3 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
-
-        ground_truth_base_path = os.path.join(REAL_DATA_PATH, '04_critical_frames_subtracted_cropped', f'case_{case}')
-        ground_truth_pointset = get_real_world_ground_truth_pointset(case, data_type_1)
-
-        input_info_1 = get_real_world_input_pointset(case, num_input_frames, offset, data_type_1)
-        input_info_2 = get_real_world_input_pointset(case, num_input_frames, offset, data_type_2)
-        input_info_3 = get_real_world_input_pointset(case, num_input_frames, offset, data_type_3)
-        first_frame_number, num_frames = find_case_info(ground_truth_base_path)
-
-        ground_truth_image = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', f'timestep_{first_frame_number}.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
-        ground_truth_image = Image.fromarray(cv2.resize(ground_truth_image, dsize=(575, 520)))
-
-        merged = Image.new(mode="RGB", size=video_size, color=(255, 255, 255))
-        merged.paste(im=ground_truth_image, box=(0, 0))
-        merged.paste(im=ground_truth_image, box=(575 + 40, 0))
-        merged.paste(im=ground_truth_image, box=(575 * 2 + 80, 0))
-        merged.paste(im=ground_truth_image, box=(575 * 3 + 120, 0))
-        merged = np.array(merged)
-        cv2.imwrite(os.path.join(frames_savepath, f'timestep_{0}.jpg'), merged)
 
         timesteps = []
         losses_1 = []
@@ -798,11 +543,27 @@ def compare_baseline_ours_rendered(real_model_1, real_model_2, real_model_3, num
         area_losses_2 = []
         area_losses_3 = []
 
-        for i in range(20):
-            output_video.write(merged)
+        ground_truth_base_path = os.path.join(REAL_DATA_PATH, '04_critical_frames_subtracted_cropped', f'case_{case}')
+        first_frame_number, num_frames = find_case_info(ground_truth_base_path)
+        ground_truth_pointset = get_real_world_ground_truth_pointset(case, data_type_1)
 
-        for timestep in range(0, num_input_frames * offset, offset):
-            ground_truth_image = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', f'timestep_{first_frame_number + timestep}.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
+        input_info_1 = get_real_world_input_pointset(case, num_input_frames, offset, data_type_1)
+        input_info_2 = get_real_world_input_pointset(case, num_input_frames, offset, data_type_2)
+        input_info_3 = get_real_world_input_pointset(case, num_input_frames, offset, data_type_3)
+
+        if output_video:
+            distance, height = get_final_video_size(case)
+            video_size = (575 * 4 + 120, 520)
+            # video_size = ((228 + CROP_SIZE) * 2 + 50, 1040)
+            # (1150 * 2 + 50, 1040)
+            output_video = cv2.VideoWriter(os.path.join(save_path, f'Test Case_{case}.MP4'), CODEC, fps, video_size)
+
+            frames_savepath = create_directory(os.path.join(save_path, f'Test Case {case}'))
+            background_image_1 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
+            background_image_2 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
+            background_image_3 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
+
+            ground_truth_image = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', f'timestep_{first_frame_number}.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
             ground_truth_image = Image.fromarray(cv2.resize(ground_truth_image, dsize=(575, 520)))
 
             merged = Image.new(mode="RGB", size=video_size, color=(255, 255, 255))
@@ -811,8 +572,23 @@ def compare_baseline_ours_rendered(real_model_1, real_model_2, real_model_3, num
             merged.paste(im=ground_truth_image, box=(575 * 2 + 80, 0))
             merged.paste(im=ground_truth_image, box=(575 * 3 + 120, 0))
             merged = np.array(merged)
-            cv2.imwrite(os.path.join(frames_savepath, f'timestep_{timestep}.jpg'), merged)
-            output_video.write(merged)
+            cv2.imwrite(os.path.join(frames_savepath, f'timestep_{0}.jpg'), merged)
+
+            for i in range(20):
+                output_video.write(merged)
+
+            for timestep in range(0, num_input_frames * offset, offset):
+                ground_truth_image = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', f'timestep_{first_frame_number + timestep}.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
+                ground_truth_image = Image.fromarray(cv2.resize(ground_truth_image, dsize=(575, 520)))
+
+                merged = Image.new(mode="RGB", size=video_size, color=(255, 255, 255))
+                merged.paste(im=ground_truth_image, box=(0, 0))
+                merged.paste(im=ground_truth_image, box=(575 + 40, 0))
+                merged.paste(im=ground_truth_image, box=(575 * 2 + 80, 0))
+                merged.paste(im=ground_truth_image, box=(575 * 3 + 120, 0))
+                merged = np.array(merged)
+                cv2.imwrite(os.path.join(frames_savepath, f'timestep_{timestep}.jpg'), merged)
+                output_video.write(merged)
 
         for timestep in tqdm(range(offset * num_input_frames, num_frames, offset)):
             predicted_pointset_1 = real_model_1.predict(input_info_1)[0]
@@ -836,108 +612,146 @@ def compare_baseline_ours_rendered(real_model_1, real_model_2, real_model_3, num
             area_losses_2.append(area_loss_2)
             area_losses_3.append(area_loss_3)
 
-            pixel_coordinates_1 = convert_to_pixel_coordinates(predicted_pointset_1[0], distance, height)
-            cv2.fillPoly(img=background_image_1, pts=[pixel_coordinates_1], color=(47, 164, 193))
+            if output_video:
+                pixel_coordinates_1 = convert_to_pixel_coordinates(predicted_pointset_1[0], distance, height)
+                cv2.fillPoly(img=background_image_1, pts=[pixel_coordinates_1], color=(47, 164, 193))
 
-            pixel_coordinates_2 = convert_to_pixel_coordinates(predicted_pointset_2[0], distance, height)
-            cv2.fillPoly(img=background_image_2, pts=[pixel_coordinates_2], color=(47, 164, 193))
+                pixel_coordinates_2 = convert_to_pixel_coordinates(predicted_pointset_2[0], distance, height)
+                cv2.fillPoly(img=background_image_2, pts=[pixel_coordinates_2], color=(47, 164, 193))
 
-            pixel_coordinates_3 = convert_to_pixel_coordinates(predicted_pointset_3[0], distance, height)
-            cv2.fillPoly(img=background_image_3, pts=[pixel_coordinates_3], color=(47, 164, 193))
+                pixel_coordinates_3 = convert_to_pixel_coordinates(predicted_pointset_3[0], distance, height)
+                cv2.fillPoly(img=background_image_3, pts=[pixel_coordinates_3], color=(47, 164, 193))
 
-            # concatenate with ground truth image for comparison
-            ground_truth_image = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', f'timestep_{first_frame_number + timestep}.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
-            ground_truth_image = Image.fromarray(cv2.resize(ground_truth_image, dsize=(575, 520)))
+                # concatenate with ground truth image for comparison
+                ground_truth_image = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', f'timestep_{first_frame_number + timestep}.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
+                ground_truth_image = Image.fromarray(cv2.resize(ground_truth_image, dsize=(575, 520)))
 
-            merged = Image.new(mode="RGB", size=video_size, color=(255, 255, 255))
-            merged.paste(im=ground_truth_image, box=(0, 0))
-            merged.paste(im=Image.fromarray(cv2.resize(background_image_1, dsize=(575, 520))), box=(575 + 40, 0))
-            merged.paste(im=Image.fromarray(cv2.resize(background_image_2, dsize=(575, 520))), box=(575 * 2 + 80, 0))
-            merged.paste(im=Image.fromarray(cv2.resize(background_image_3, dsize=(575, 520))), box=(575 * 3 + 120, 0))
-            merged = np.array(merged)
+                merged = Image.new(mode="RGB", size=video_size, color=(255, 255, 255))
+                merged.paste(im=ground_truth_image, box=(0, 0))
+                merged.paste(im=Image.fromarray(cv2.resize(background_image_1, dsize=(575, 520))), box=(575 + 40, 0))
+                merged.paste(im=Image.fromarray(cv2.resize(background_image_2, dsize=(575, 520))), box=(575 * 2 + 80, 0))
+                merged.paste(im=Image.fromarray(cv2.resize(background_image_3, dsize=(575, 520))), box=(575 * 3 + 120, 0))
+                merged = np.array(merged)
 
-            cv2.imwrite(os.path.join(frames_savepath, f'timestep_{timestep}.jpg'), merged)
-            output_video.write(merged)
+                cv2.imwrite(os.path.join(frames_savepath, f'timestep_{timestep}.jpg'), merged)
+                output_video.write(merged)
+
+                del background_image_1, background_image_2, background_image_3
+
+                background_image_1 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
+                background_image_2 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
+                background_image_3 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
+
             input_info_1 = update_input_pointset(input_info_1, predicted_pointset_1)
             input_info_2 = update_input_pointset(input_info_2, predicted_pointset_2)
             input_info_3 = update_input_pointset(input_info_3, predicted_pointset_3)
-            del background_image_1, background_image_2, background_image_3
-            background_image_1 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
-            background_image_2 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
-            background_image_3 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
 
-        output_video.release()
-        cv2.destroyAllWindows()
+        if output_video:
+            output_video.release()
+            cv2.destroyAllWindows()
 
+        # Loss Graph (Chamfer Distance)
         plt.plot(timesteps, losses_1, label=f'{data_type_1}')
         plt.plot(timesteps, losses_2, label=f'{data_type_2}')
         plt.plot(timesteps, losses_3, label=f'{data_type_3}')
 
         plt.xlabel('Timestep')
-        plt.ylabel('Loss')
+        plt.ylabel('Chamfer Distance')
         plt.legend()
-        plt.savefig(os.path.join(save_path, 'loss_test_case_{}.png'.format(case)), dpi=600)
+        plt.savefig(os.path.join(chamfer_graph_save_path, 'Test Case {}.png'.format(case)), dpi=600)
         plt.clf()
 
         plt.plot(timesteps, area_losses_1, label=f'{data_type_1}')
         plt.plot(timesteps, area_losses_2, label=f'{data_type_2}')
         plt.plot(timesteps, area_losses_3, label=f'{data_type_3}')
 
+        # Loss Graph (Area Loss)
         plt.xlabel('Timestep')
         plt.ylabel('Area Loss')
         plt.legend()
-        plt.savefig(os.path.join(save_path, 'area_loss_test_case_{}.png'.format(case)), dpi=600)
+        plt.savefig(os.path.join(area_loss_graph_save_path, 'Test Case {}.png'.format(case)), dpi=600)
         plt.clf()
 
-        global_losses_1 += np.array(losses_1[:60])
-        global_losses_2 += np.array(losses_2[:60])
-        global_losses_3 += np.array(losses_3[:60])
+        global_losses_1 += np.array(losses_1[:COMPARE_LENGTH])
+        global_losses_2 += np.array(losses_2[:COMPARE_LENGTH])
+        global_losses_3 += np.array(losses_3[:COMPARE_LENGTH])
 
-        global_area_losses_1 += np.array(area_losses_1[:60])
-        global_area_losses_2 += np.array(area_losses_2[:60])
-        global_area_losses_3 += np.array(area_losses_3[:60])
+        global_area_losses_1 += np.array(area_losses_1[:COMPARE_LENGTH])
+        global_area_losses_2 += np.array(area_losses_2[:COMPARE_LENGTH])
+        global_area_losses_3 += np.array(area_losses_3[:COMPARE_LENGTH])
 
-
-    # Average Loss Graph
+    # Average Loss Graph - First COMPARE_LENGTH Frames
     global_losses_1 /= len(REAL_WORLD_TEST_CASES)
     global_losses_2 /= len(REAL_WORLD_TEST_CASES)
     global_losses_3 /= len(REAL_WORLD_TEST_CASES)
 
-    plt.plot(timesteps[:60], global_losses_1.tolist(), label=f'{data_type_1}')
-    plt.plot(timesteps[:60], global_losses_2.tolist(), label=f'{data_type_2}')
-    plt.plot(timesteps[:60], global_losses_3.tolist(), label=f'{data_type_3}')
+    plt.plot(timesteps[:COMPARE_LENGTH], global_losses_1.tolist(), label=f'{data_type_1}')
+    plt.plot(timesteps[:COMPARE_LENGTH], global_losses_2.tolist(), label=f'{data_type_2}')
+    plt.plot(timesteps[:COMPARE_LENGTH], global_losses_3.tolist(), label=f'{data_type_3}')
 
     plt.xlabel('Timestep')
-    plt.ylabel('Average Loss')
+    plt.ylabel('Average Chamfer Distance')
     plt.legend()
-    plt.savefig(os.path.join(save_path, 'loss_average.png'), dpi=600)
+    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average.png'), dpi=600)
     plt.clf()
 
+    # Average Loss Graph - First COMPARE_LENGTH Frames without Sorted
+    plt.plot(timesteps[:COMPARE_LENGTH], global_losses_1.tolist(), label=f'{data_type_1}')
+    plt.plot(timesteps[:COMPARE_LENGTH], global_losses_2.tolist(), label=f'{data_type_2}')
+
+    plt.xlabel('Timestep')
+    plt.ylabel('Average Chamfer Distance')
+    plt.legend()
+    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average (Unordered VS Ordered).png'), dpi=600)
+    plt.clf()
+
+    # Average Loss Graph - First 30 Frames
     plt.plot(timesteps[:30], global_losses_1.tolist()[:30], label=f'{data_type_1}')
     plt.plot(timesteps[:30], global_losses_2.tolist()[:30], label=f'{data_type_2}')
     plt.plot(timesteps[:30], global_losses_3.tolist()[:30], label=f'{data_type_3}')
 
     plt.xlabel('Timestep')
-    plt.ylabel('Average Loss')
+    plt.ylabel('Average Chamfer Distance')
     plt.legend()
-    plt.savefig(os.path.join(save_path, 'loss_average_first_30_frames.png'), dpi=600)
+    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average First 30.png'), dpi=600)
     plt.clf()
 
-    # Average Area Loss Graph
+    # Average Loss Graph - First 30 Frames Without Sorted
+    plt.plot(timesteps[:30], global_losses_1.tolist()[:30], label=f'{data_type_1}')
+    plt.plot(timesteps[:30], global_losses_2.tolist()[:30], label=f'{data_type_2}')
+
+    plt.xlabel('Timestep')
+    plt.ylabel('Average Chamfer Distance')
+    plt.legend()
+    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average First 30 (Unordered VS Ordered).png'), dpi=600)
+    plt.clf()
+
+    # Average Area Loss Graph - First COMPARE_LENGTH Frames
     global_area_losses_1 /= len(REAL_WORLD_TEST_CASES)
     global_area_losses_2 /= len(REAL_WORLD_TEST_CASES)
     global_area_losses_3 /= len(REAL_WORLD_TEST_CASES)
 
-    plt.plot(timesteps[:60], global_area_losses_1.tolist(), label=f'{data_type_1}')
-    plt.plot(timesteps[:60], global_area_losses_2.tolist(), label=f'{data_type_2}')
-    plt.plot(timesteps[:60], global_area_losses_3.tolist(), label=f'{data_type_3}')
+    plt.plot(timesteps[:COMPARE_LENGTH], global_area_losses_1.tolist(), label=f'{data_type_1}')
+    plt.plot(timesteps[:COMPARE_LENGTH], global_area_losses_2.tolist(), label=f'{data_type_2}')
+    plt.plot(timesteps[:COMPARE_LENGTH], global_area_losses_3.tolist(), label=f'{data_type_3}')
 
     plt.xlabel('Timestep')
     plt.ylabel('Average Area Loss')
     plt.legend()
-    plt.savefig(os.path.join(save_path, 'area_loss_average.png'), dpi=600)
+    plt.savefig(os.path.join(area_loss_graph_save_path, '..', 'Average.png'), dpi=600)
     plt.clf()
 
+    # Average Area Loss Graph - First COMPARE_LENGTH Frames (Without Sorted)
+    plt.plot(timesteps[:COMPARE_LENGTH], global_area_losses_1.tolist()[:COMPARE_LENGTH], label=f'{data_type_1}')
+    plt.plot(timesteps[:COMPARE_LENGTH], global_area_losses_2.tolist()[:COMPARE_LENGTH], label=f'{data_type_2}')
+
+    plt.xlabel('Timestep')
+    plt.ylabel('Average Area Loss')
+    plt.legend()
+    plt.savefig(os.path.join(area_loss_graph_save_path, '..', 'Average (Unordered VS Ordered).png'), dpi=600)
+    plt.clf()
+
+    # Average Area Loss Graph - First 30 Frames
     plt.plot(timesteps[:30], global_area_losses_1.tolist()[:30], label=f'{data_type_1}')
     plt.plot(timesteps[:30], global_area_losses_2.tolist()[:30], label=f'{data_type_2}')
     plt.plot(timesteps[:30], global_area_losses_3.tolist()[:30], label=f'{data_type_3}')
@@ -945,5 +759,15 @@ def compare_baseline_ours_rendered(real_model_1, real_model_2, real_model_3, num
     plt.xlabel('Timestep')
     plt.ylabel('Average Area Loss')
     plt.legend()
-    plt.savefig(os.path.join(save_path, 'area_loss_average_first_30_frames.png'), dpi=600)
+    plt.savefig(os.path.join(area_loss_graph_save_path, '..', 'Average First 30.png'), dpi=600)
+    plt.clf()
+
+    # Average Area Loss Graph - First 30 Frames (Without Sorted)
+    plt.plot(timesteps[:30], global_area_losses_1.tolist()[:30], label=f'{data_type_1}')
+    plt.plot(timesteps[:30], global_area_losses_2.tolist()[:30], label=f'{data_type_2}')
+
+    plt.xlabel('Timestep')
+    plt.ylabel('Average Area Loss')
+    plt.legend()
+    plt.savefig(os.path.join(area_loss_graph_save_path, '..', 'Average First 30 (Unordered VS Sorted).png'), dpi=600)
     plt.clf()

@@ -69,4 +69,4 @@ random.seed(RANDOM_SEED)
 if ENVIRONMENT == 'simulation':
     compare_baseline_and_ours_prediction(model_1, model_2, model_3, DATA_TYPE_1, DATA_TYPE_2, DATA_TYPE_3, result_savepath, OFFSET, FPS)
 else:
-    compare_baseline_ours_rendered(model_1, model_2, model_3, 3, result_savepath, OFFSET, FPS, DATA_TYPE_1, DATA_TYPE_2, DATA_TYPE_3)
+    compare_baseline_ours_rendered(model_1, model_2, model_3, 3, result_savepath, OFFSET, FPS, DATA_TYPE_1, DATA_TYPE_2, DATA_TYPE_3, output_video=False)

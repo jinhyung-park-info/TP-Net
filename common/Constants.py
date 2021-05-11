@@ -45,8 +45,8 @@ MAX_X, MAX_Y = SCREEN_LENGTH - WALL_WIDTH, SCREEN_HEIGHT - WALL_WIDTH
 COLLISION_RANGE_BOUND = 0.2
 
 DATA_SAVE_MODE = True
-RAW_DATA_PATH = os.path.join('D:', 'WhereToGo', 'simulation_data')
-REAL_DATA_PATH = os.path.join('D:', 'WhereToGo', 'real_world')
+RAW_DATA_PATH = os.path.join('D:\\', 'Real-World-Softbody', 'data', 'simulation', 'raw_data')
+REAL_DATA_PATH = os.path.join('D:\\', 'Real-World-Softbody', 'data', 'real_world', 'raw_data')
 NUM_SEQUENCE_PER_ANIMATION = 600
 NUM_INPUT_FRAMES = 8
 NUM_PARTICLES = 30      # Must be an even number
@@ -111,7 +111,9 @@ REAL_WORLD_TRAIN_CASES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
                           51, 52, 54, 56, 57, 60, 61, 62]
 
 REAL_WORLD_VAL_CASES = [41, 42, 43, 44, 45, 46]
-REAL_WORLD_TEST_CASES = [4, 63, 64, 66, 67, 68, 69, 70, 71, 72]
+REAL_WORLD_TEST_CASES = [63, 64, 66, 67, 68, 69, 70, 71, 72]
+TRAIN_AND_TEST_CASES = [2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 19, 20, 24, 25, 27, 28, 30, 32, 37, 39, 45, 46, 49, 54, 57, 61, 63, 64, 66, 67, 68, 69, 70, 71, 72]
+COMPARE_LENGTH = 65
 
 # 6. Model Related
 RANDOM_SEED = 1
