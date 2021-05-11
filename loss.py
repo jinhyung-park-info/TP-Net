@@ -29,7 +29,7 @@ def chamfer_distance_and_shape_with_batch(p1, p2, debug=False):
     variances = tf.math.reduce_variance(particle_dist, axis=1)
     mean_variance = tf.reduce_mean(variances)
 
-    return chamfer_dist + 2000 * mean_variance
+    return chamfer_dist + 200000 * mean_variance
 
 
 def chamfer_distance_with_batch(p1, p2, debug=False):
@@ -101,6 +101,10 @@ def chamfer_and_shape_for_first(y_true, y_pred):
 
 def mse_for_first(y_true, y_pred):
     return tf.keras.losses.mean_squared_error(y_true, y_pred) * 9.0
+
+
+def mse_base(y_true, y_pred):
+    return tf.keras.losses.mean_squared_error(y_true, y_pred)
 
 
 if __name__ == '__main__':

@@ -135,7 +135,8 @@ def write_model_info(path,
     file.write(f'Val Data Input Shape      : {val_input}\n')
     file.write(f'Val Data Output Shape     : {val_output}\n')
     file.write(f'Batch Size                : {batch_size}\n')
-    file.write(f'Patience                  : {patience}\n\n\n')
+    file.write(f'Patience                  : {patience}\n')
+    file.write(f'Random Seed               : {RANDOM_SEED}\n\n\n')
 
     file.write('=============== Single Frame Prediction Model Summary =============\n\n')
     model.get_layer('functional_3').summary(print_fn=lambda x: file.write(x + '\n\n\n'))
@@ -176,7 +177,8 @@ def write_real_model_info(path,
     file.write(f'Val Data Output Shape     : {val_output}\n')
     file.write(f'Batch Size                : {batch_size}\n')
     file.write(f'Patience                  : {patience}\n')
-    file.write(f'Learning Rate             : {lr}\n\n\n')
+    file.write(f'Learning Rate             : {lr}\n')
+    file.write(f'Random Seed               : {RANDOM_SEED}\n\n\n')
 
     file.write('=============== Model Summary =============\n\n')
     model.summary(print_fn=lambda x: file.write(x + '\n\n\n'))

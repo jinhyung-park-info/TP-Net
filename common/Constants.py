@@ -48,7 +48,7 @@ DATA_SAVE_MODE = True
 RAW_DATA_PATH = os.path.join('D:\\', 'Real-World-Softbody', 'data', 'simulation', 'raw_data')
 REAL_DATA_PATH = os.path.join('D:\\', 'Real-World-Softbody', 'data', 'real_world', 'raw_data')
 NUM_SEQUENCE_PER_ANIMATION = 600
-NUM_INPUT_FRAMES = 8
+NUM_INPUT_FRAMES = 3
 NUM_PARTICLES = 30      # Must be an even number
 """
 FORCE_LST = [1.3]

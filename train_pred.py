@@ -111,7 +111,7 @@ elif LOSS_TYPE == 'chamfer_and_mse':
     base_loss = chamfer_and_mse
 elif LOSS_TYPE == 'mse':
     first_loss = mse_for_first
-    base_loss = 'mse'
+    base_loss = mse_base
 else:
     first_loss = chamfer_and_shape_for_first
     base_loss = chamfer_and_shape

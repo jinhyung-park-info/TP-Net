@@ -161,7 +161,7 @@ def build_global_feature_extractor(num_global_features, use_transform_net, bn):
     else:
         net = tf.expand_dims(point_set_input, -1)
 
-    net1 = Conv2D(filters=64,
+    net = Conv2D(filters=64,
                  kernel_size=(1, 2),
                  strides=(1, 1),
                  activation=tf.nn.relu,
@@ -169,51 +169,50 @@ def build_global_feature_extractor(num_global_features, use_transform_net, bn):
                  data_format='channels_last')(net)
 
     if bn:
-        net1 = BatchNormalization()(net1)
+        net = BatchNormalization()(net)
 
-    net2 = Conv2D(filters=64,
+    net = Conv2D(filters=64,
                  kernel_size=(1, 1),
                  strides=(1, 1),
                  activation=tf.nn.relu,
                  padding='valid',
-                 data_format='channels_last')(net1)
+                 data_format='channels_last')(net)
 
     if bn:
-        net2 = BatchNormalization()(net2)
+        net = BatchNormalization()(net)
 
     if use_transform_net:
         with tf.compat.v1.variable_scope('transform_net2') as sc:
-            transform = feature_transform_net(net1 + net2, K=64)
-        net_transformed = tf.matmul(tf.squeeze(net1 + net2, axis=[2]), transform)
-        net2 = tf.expand_dims(net_transformed, [2])
+            transform = feature_transform_net(net, K=64)
+        net_transformed = tf.matmul(tf.squeeze(net, axis=[2]), transform)
+        net = tf.expand_dims(net_transformed, [2])
 
-    # Changed from 128 -> 256 for skip connections
-    net3 = Conv2D(filters=256,
+    net = Conv2D(filters=128,
                  kernel_size=(1, 1),
                  strides=(1, 1),
                  activation=tf.nn.relu,
                  padding='valid',
-                 data_format='channels_last')(net2)
+                 data_format='channels_last')(net)
 
     if bn:
-        net3 = BatchNormalization()(net3)
+        net = BatchNormalization()(net)
 
-    net4 = Conv2D(filters=256,
+    net = Conv2D(filters=256,
                  kernel_size=(1, 1),
                  strides=(1, 1),
                  activation=tf.nn.relu,
                  padding='valid',
-                 data_format='channels_last')(net3)
+                 data_format='channels_last')(net)
 
     if bn:
-        net4 = BatchNormalization()(net4)
+        net = BatchNormalization()(net)
 
     net = Conv2D(filters=512,
                  kernel_size=(1, 1),
                  strides=(1, 1),
                  activation=tf.nn.relu,
                  padding='valid',
-                 data_format='channels_last')(net3 + net4)
+                 data_format='channels_last')(net)
 
     if bn:
         net = BatchNormalization()(net)
@@ -255,6 +254,7 @@ def global_pointnet_lstm(num_global_features=128, use_transform_net=True, bn=Fal
 
     net = LayerNormalization()(net)
 
+    # changed to 64 to check for performance enhance
     net = Bidirectional(LSTM(units=128,
                              return_sequences=False))(net)
 

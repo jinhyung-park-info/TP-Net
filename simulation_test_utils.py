@@ -171,102 +171,6 @@ def generate_simulation_result_videos(prediction_model, save_path, offset, lengt
 
 
 # Compare Multiple Simulation Prediction
-"""
-def compare_simulation_prediction_results(model_1, model_2, model_1_type, model_2_type, save_path, offset, fps, test_type, test_data_type):
-
-    if test_data_type == 'unordered':
-        if test_type == 'train':
-            cases = TRAINED_CASES_FOR_UNORDERED
-        else:
-            cases = TEST_CASES_FOR_UNORDERED
-    else:
-        if test_type == 'train':
-            cases = TRAINED_CASES_FOR_ORDERED
-        else:
-            cases = TEST_CASES_FOR_ORDERED
-
-    global_losses_1 = np.array([0.0] * 72)
-    global_losses_2 = np.array([0.0] * 72)
-
-    for case_num, test_case in enumerate(cases):
-
-        print(f'============== Testing Case #{case_num + 1} ==============')
-
-        output_video = cv2.VideoWriter(os.path.join(save_path, f'Test Case_{case_num + 1}.MP4'), CODEC, fps, (VIDEO_HEIGHT * 3, VIDEO_HEIGHT))
-        frames_savepath = create_directory(os.path.join(save_path, f'Test Case {case_num + 1}'))
-        ground_truth_base_path = get_ground_truth_base_path(test_case)
-        input_info_1 = get_simulation_input_pointset(test_case, offset, test_data_type)
-        input_info_2 = get_simulation_input_pointset(test_case, offset, test_data_type)
-        ground_truth_pointset = get_normalized_ground_truth_pointset(test_case)
-
-        timesteps = []
-        losses_1 = []
-        losses_2 = []
-
-        frame = concat_three_simulation_ground_truth_frames(ground_truth_base_path, frames_savepath, sequence_number=0)
-        for i in range(20):
-            output_video.write(frame)
-
-        for timestep in range(0, NUM_INPUT_FRAMES * offset, offset):
-            frame = concat_three_simulation_ground_truth_frames(ground_truth_base_path, frames_savepath, timestep)
-            output_video.write(frame)
-
-        for timestep in tqdm(range(offset * NUM_INPUT_FRAMES, NUM_SEQUENCE_PER_ANIMATION, offset)):
-            predicted_pointset_1 = model_1.predict(input_info_1)[0]     # Use only the first predicted frame
-            predicted_pointset_2 = model_2.predict(input_info_2)[0]
-
-            loss_1 = get_cd_loss_func(np.array([ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_1)
-            loss_2 = get_cd_loss_func(np.array([ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_2)
-
-            timesteps.append(timestep)
-            losses_1.append(loss_1)
-            losses_2.append(loss_2)
-
-            coordinates_1 = denormalize_pointset(predicted_pointset_1[0])
-            coordinates_2 = denormalize_pointset(predicted_pointset_2[0])
-            predicted_frame_1 = draw_box2d_image(coordinates_1)
-            predicted_frame_2 = draw_box2d_image(coordinates_2)
-
-            # concatenate with ground truth image for comparison
-            merged_frame = concat_multiple_preds_and_simulation_gt_frame(predicted_frame_1, predicted_frame_2, ground_truth_base_path, timestep, frames_savepath)
-            output_video.write(merged_frame)
-            input_info_1 = update_input_pointset(input_info_1, predicted_pointset_1)
-            input_info_2 = update_input_pointset(input_info_2, predicted_pointset_2)
-
-        output_video.release()
-        cv2.destroyAllWindows()
-
-        plt.plot(timesteps, losses_1, label=f'{model_1_type}')
-        plt.plot(timesteps, losses_2, label=f'{model_2_type}')
-        plt.xlabel('Timestep')
-        plt.ylabel('Loss')
-        plt.legend()
-        plt.savefig(os.path.join(save_path, 'loss_test_case_{}.png'.format(case_num + 1)), dpi=600)
-        plt.clf()
-
-        global_losses_1 += losses_1
-        global_losses_2 += losses_2
-
-    # Average Loss Graph
-    global_losses_1 /= len(cases)
-    global_losses_2 /= len(cases)
-    plt.plot(timesteps, global_losses_1.tolist(), label=f'{model_1_type}')
-    plt.plot(timesteps, global_losses_2.tolist(), label=f'{model_2_type}')
-    plt.xlabel('Timestep')
-    plt.ylabel('Average Loss')
-    plt.legend()
-    plt.savefig(os.path.join(save_path, 'loss_average.png'), dpi=600)
-    plt.clf()
-
-    plt.plot(timesteps[:30], global_losses_1.tolist()[:30], label=f'{model_1_type}')
-    plt.plot(timesteps[:30], global_losses_2.tolist()[:30], label=f'{model_2_type}')
-    plt.xlabel('Timestep')
-    plt.ylabel('Average Loss')
-    plt.legend()
-    plt.savefig(os.path.join(save_path, 'loss_average_first_30_frames.png'), dpi=600)
-    plt.clf()
-"""
-
 def make_and_concat_four_simulation_ground_truth_frames(pointset, savepath, sequence_number):
     merged = Image.new(mode="L", size=(SMALL_HEIGHT * 4, SMALL_HEIGHT), color=255)
     ground_truth_image = Image.fromarray(draw_box2d_image(pointset)).resize((SMALL_SIZE, SMALL_SIZE))
@@ -288,19 +192,18 @@ def make_and_concat_three_preds_and_simulation_gt_frame(predicted_frame_1, predi
     return np.array(merged)
 
 
-def compare_baseline_and_ours_prediction(model_1, model_2, model_3, data_1_type, data_2_type, data_3_type, save_path, offset, fps):
+def compare_baseline_ours_simulation(model_1, model_2, model_3, data_1_type, data_2_type, data_3_type, save_path, offset, fps, output_video):
 
     cases = TEST_CASES[:15]
-    global_losses_1 = np.array([0.0] * 145)
-    global_losses_2 = np.array([0.0] * 145)
-    global_losses_3 = np.array([0.0] * 145)
+    global_losses_1 = np.array([0.0] * COMPARE_LENGTH)
+    global_losses_2 = np.array([0.0] * COMPARE_LENGTH)
+    global_losses_3 = np.array([0.0] * COMPARE_LENGTH)
+
+    chamfer_graph_save_path = create_directory(os.path.join(save_path, 'Loss Graph', 'Chamfer'))
 
     for case_num, test_case in enumerate(cases):
 
         print(f'============== Testing Case #{case_num + 1} ==============')
-
-        output_video = cv2.VideoWriter(os.path.join(save_path, f'Test Case_{case_num + 1}.MP4'), CODEC, fps, (VIDEO_HEIGHT * 3, VIDEO_HEIGHT))
-        frames_savepath = create_directory(os.path.join(save_path, f'Test Case {case_num + 1}'))
 
         input_info_1 = get_simulation_input_pointset(test_case, offset, data_1_type)
         input_info_2 = get_simulation_input_pointset(test_case, offset, data_2_type)
@@ -314,13 +217,17 @@ def compare_baseline_and_ours_prediction(model_1, model_2, model_3, data_1_type,
         losses_2 = []
         losses_3 = []
 
-        frame = make_and_concat_four_simulation_ground_truth_frames(ground_truth_pointset[0], frames_savepath, 0)
-        for i in range(20):
-            output_video.write(frame)
+        if output_video:
+            output_video = cv2.VideoWriter(os.path.join(save_path, f'Test Case_{case_num + 1}.MP4'), CODEC, fps, (VIDEO_HEIGHT * 3, VIDEO_HEIGHT))
+            frames_savepath = create_directory(os.path.join(save_path, f'Test Case {case_num + 1}'))
 
-        for timestep in range(0, NUM_INPUT_FRAMES * offset, offset):
-            frame = make_and_concat_four_simulation_ground_truth_frames(ground_truth_pointset[timestep], frames_savepath, timestep)
-            output_video.write(frame)
+            frame = make_and_concat_four_simulation_ground_truth_frames(ground_truth_pointset[0], frames_savepath, 0)
+            for i in range(20):
+                output_video.write(frame)
+
+            for timestep in range(0, NUM_INPUT_FRAMES * offset, offset):
+                frame = make_and_concat_four_simulation_ground_truth_frames(ground_truth_pointset[timestep], frames_savepath, timestep)
+                output_video.write(frame)
 
         for timestep in tqdm(range(offset * NUM_INPUT_FRAMES, NUM_SEQUENCE_PER_ANIMATION, offset)):
             predicted_pointset_1 = model_1.predict(input_info_1)[0]
@@ -336,23 +243,26 @@ def compare_baseline_and_ours_prediction(model_1, model_2, model_3, data_1_type,
             losses_2.append(loss_2)
             losses_3.append(loss_3)
 
-            coordinates_1 = denormalize_pointset(predicted_pointset_1[0])
-            coordinates_2 = denormalize_pointset(predicted_pointset_2[0])
-            coordinates_3 = denormalize_pointset(predicted_pointset_3[0])
+            if output_video:
+                coordinates_1 = denormalize_pointset(predicted_pointset_1[0])
+                coordinates_2 = denormalize_pointset(predicted_pointset_2[0])
+                coordinates_3 = denormalize_pointset(predicted_pointset_3[0])
 
-            predicted_frame_1 = draw_box2d_image(coordinates_1)
-            predicted_frame_2 = draw_box2d_image(coordinates_2)
-            predicted_frame_3 = draw_box2d_image(coordinates_3)
+                predicted_frame_1 = draw_box2d_image(coordinates_1)
+                predicted_frame_2 = draw_box2d_image(coordinates_2)
+                predicted_frame_3 = draw_box2d_image(coordinates_3)
 
-            # concatenate with ground truth image for comparison
-            merged_frame = make_and_concat_three_preds_and_simulation_gt_frame(predicted_frame_1, predicted_frame_2, predicted_frame_3, ground_truth_pointset[timestep], timestep, frames_savepath)
-            output_video.write(merged_frame)
+                # concatenate with ground truth image for comparison
+                merged_frame = make_and_concat_three_preds_and_simulation_gt_frame(predicted_frame_1, predicted_frame_2, predicted_frame_3, ground_truth_pointset[timestep], timestep, frames_savepath)
+                output_video.write(merged_frame)
+
             input_info_1 = update_input_pointset(input_info_1, predicted_pointset_1)
             input_info_2 = update_input_pointset(input_info_2, predicted_pointset_2)
             input_info_3 = update_input_pointset(input_info_3, predicted_pointset_3)
 
-        output_video.release()
-        cv2.destroyAllWindows()
+        if output_video:
+            output_video.release()
+            cv2.destroyAllWindows()
 
         plt.plot(timesteps, losses_1, label=f'{data_1_type}')
         plt.plot(timesteps, losses_2, label=f'{data_2_type}')
@@ -361,26 +271,26 @@ def compare_baseline_and_ours_prediction(model_1, model_2, model_3, data_1_type,
         plt.xlabel('Timestep')
         plt.ylabel('Loss')
         plt.legend()
-        plt.savefig(os.path.join(save_path, 'loss_test_case_{}.png'.format(case_num + 1)), dpi=600)
+        plt.savefig(os.path.join(chamfer_graph_save_path, 'Test Case {}.png'.format(case_num + 1)), dpi=600)
         plt.clf()
 
-        global_losses_1 += losses_1[:145]
-        global_losses_2 += losses_2[:145]
-        global_losses_3 += losses_3[:145]
+        global_losses_1 += losses_1[:COMPARE_LENGTH]
+        global_losses_2 += losses_2[:COMPARE_LENGTH]
+        global_losses_3 += losses_3[:COMPARE_LENGTH]
 
     # Average Loss Graph
     global_losses_1 /= len(cases)
     global_losses_2 /= len(cases)
     global_losses_3 /= len(cases)
 
-    plt.plot(timesteps[:145], global_losses_1.tolist(), label=f'{data_1_type}')
-    plt.plot(timesteps[:145], global_losses_2.tolist(), label=f'{data_2_type}')
-    plt.plot(timesteps[:145], global_losses_3.tolist(), label=f'{data_3_type}')
+    plt.plot(timesteps[:COMPARE_LENGTH], global_losses_1.tolist(), label=f'{data_1_type}')
+    plt.plot(timesteps[:COMPARE_LENGTH], global_losses_2.tolist(), label=f'{data_2_type}')
+    plt.plot(timesteps[:COMPARE_LENGTH], global_losses_3.tolist(), label=f'{data_3_type}')
 
     plt.xlabel('Timestep')
-    plt.ylabel('Average Loss')
+    plt.ylabel('Average Chamfer Distance')
     plt.legend()
-    plt.savefig(os.path.join(save_path, 'loss_average.png'), dpi=600)
+    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average Chamfer Distance.png'), dpi=600)
     plt.clf()
 
     plt.plot(timesteps[:30], global_losses_1.tolist()[:30], label=f'{data_1_type}')
@@ -388,7 +298,7 @@ def compare_baseline_and_ours_prediction(model_1, model_2, model_3, data_1_type,
     plt.plot(timesteps[:30], global_losses_3.tolist()[:30], label=f'{data_3_type}')
 
     plt.xlabel('Timestep')
-    plt.ylabel('Average Loss')
+    plt.ylabel('Average Chamfer Distance')
     plt.legend()
-    plt.savefig(os.path.join(save_path, 'loss_average_first_30_frames.png'), dpi=600)
+    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average Chamfer Distance (First 30).png'), dpi=600)
     plt.clf()

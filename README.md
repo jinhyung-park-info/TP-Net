@@ -3,7 +3,7 @@
 **By <a href="http://github.com/jinhyung426/" target="_blank">Jinhyung Park</a>, Dohae Lee from Yonsei University (Seoul, Republic of Korea)**
 
 <p align="center">
-  <img width="912" height="441" src="https://github.com/cgna-soft/Real-World-Softbody/tree/main/utils/teaser.jpg">
+  <img width="912" height="441" src="https://github.com/cgna-soft/Real-World-Softbody/blob/main/utils/teaser.jpg">
 </p>
 <br/>
 

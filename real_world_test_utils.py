@@ -68,6 +68,8 @@ def get_real_world_input_pointset(case, num_input_frames, offset, test_data_type
 
     if test_data_type == 'unordered':
         input_info = [sample(pointset, len(pointset)) for pointset in input_info]
+    elif test_data_type == 'sorted':
+        input_info = [sort_pointset(pointset) for pointset in input_info]
 
     return np.array([input_info])
 
@@ -207,19 +209,19 @@ def draw_polygon(ImShape, Polygon, Color):
 
 
 def get_non_intersected_area(image_shape, polygon_1, polygon_2):
-    image_1 = draw_polygon(image_shape[:-1], polygon_1, 133)           # Polygon 2 area is filled with 133
-    ret, new_image_1 = cv2.threshold(image_1, 120, 133, cv2.THRESH_BINARY)   # According to the above filling value, so the pixel value in the new image is 255 as the overlapping place
-    ground_truth_area = np.sum(np.greater(new_image_1, 0))                   # Find the area of the overlapping area of two polygons
+    image_1 = draw_polygon(image_shape[:-1], polygon_1, 133)                   # Polygon 2 area is filled with 133
+    ret, new_image_1 = cv2.threshold(image_1, 120, 133, cv2.THRESH_BINARY)     # According to the above filling value, so the pixel value in the new image is 255 as the overlapping place
+    ground_truth_area = np.sum(np.greater(new_image_1, 0))                     # Find the area of the overlapping area of two polygons
 
-    image_2 = draw_polygon(image_shape[:-1], polygon_2, 133)             # Polygon 2 area is filled with 133
+    image_2 = draw_polygon(image_shape[:-1], polygon_2, 133)                   # Polygon 2 area is filled with 133
     ret, new_image_2 = cv2.threshold(image_2, 120, 133, cv2.THRESH_BINARY)     # According to the above filling value, so the pixel value in the new image is 255 as the overlapping place
     predicted_area = np.sum(np.greater(new_image_2, 0))                        # Find the area of the overlapping area of two polygons
 
     image_1 = draw_polygon(image_shape[:-1], polygon_1, 122)
     image_2 = draw_polygon(image_shape[:-1], polygon_2, 133)
     image = image_1 + image_2
-    ret, overlapped_image = cv2.threshold(image, 200, 255, cv2.THRESH_BINARY)   # According to the above filling value, so the pixel value in the new image is 255 as the overlapping place
-    intersect_area = np.sum(np.greater(overlapped_image, 0))                    # Find the area of the overlapping area of two polygons
+    ret, overlapped_image = cv2.threshold(image, 200, 255, cv2.THRESH_BINARY)  # According to the above filling value, so the pixel value in the new image is 255 as the overlapping place
+    intersect_area = np.sum(np.greater(overlapped_image, 0))                   # Find the area of the overlapping area of two polygons
 
     return (predicted_area - intersect_area) + (ground_truth_area - intersect_area)
 
@@ -416,8 +418,12 @@ def concat_multiple_preds_and_real_world_gt_frame(predicted_frame_1, predicted_f
 def get_final_video_size(video_number):
     if video_number == 4:
         return 1624, 948
-    src1 = cv2.imread(os.path.join(f'C:/Users/User/Desktop/crop_positions/case_{video_number}_left.jpg'))
-    src2 = cv2.imread(os.path.join(f'C:/Users/User/Desktop/crop_positions/case_{video_number}_down.jpg'))
+    if 42 <= video_number <= 47:
+        return 1470, 926
+    if video_number == 41:
+        return 1480, 926
+    src1 = cv2.imread(os.path.join(REAL_DATA_PATH, 'crop_positions', f'case_{video_number}_left.jpg'))
+    src2 = cv2.imread(os.path.join(REAL_DATA_PATH, 'crop_positions', f'case_{video_number}_down.jpg'))
     return src1.shape[1], src2.shape[0]
 
 
@@ -515,9 +521,9 @@ def generate_rendered_videos(simulation_model, real_model, num_input_frames, sav
         cv2.destroyAllWindows()
 
 
-def compare_baseline_ours_rendered(real_model_1, real_model_2, real_model_3,
-                                   num_input_frames, save_path, offset, fps,
-                                   data_type_1, data_type_2, data_type_3, output_video):
+def compare_baseline_ours_real_in_rendered(real_model_1, real_model_2, real_model_3,
+                                           num_input_frames, save_path, offset, fps,
+                                           data_type_1, data_type_2, data_type_3, output_video):
 
     global_losses_1 = np.array([0.0] * COMPARE_LENGTH)
     global_losses_2 = np.array([0.0] * COMPARE_LENGTH)
@@ -545,7 +551,7 @@ def compare_baseline_ours_rendered(real_model_1, real_model_2, real_model_3,
 
         ground_truth_base_path = os.path.join(REAL_DATA_PATH, '04_critical_frames_subtracted_cropped', f'case_{case}')
         first_frame_number, num_frames = find_case_info(ground_truth_base_path)
-        ground_truth_pointset = get_real_world_ground_truth_pointset(case, data_type_1)
+        ground_truth_pointset = get_real_world_ground_truth_pointset(case, 'ordered')
 
         input_info_1 = get_real_world_input_pointset(case, num_input_frames, offset, data_type_1)
         input_info_2 = get_real_world_input_pointset(case, num_input_frames, offset, data_type_2)
@@ -692,17 +698,7 @@ def compare_baseline_ours_rendered(real_model_1, real_model_2, real_model_3,
     plt.xlabel('Timestep')
     plt.ylabel('Average Chamfer Distance')
     plt.legend()
-    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average.png'), dpi=600)
-    plt.clf()
-
-    # Average Loss Graph - First COMPARE_LENGTH Frames without Sorted
-    plt.plot(timesteps[:COMPARE_LENGTH], global_losses_1.tolist(), label=f'{data_type_1}')
-    plt.plot(timesteps[:COMPARE_LENGTH], global_losses_2.tolist(), label=f'{data_type_2}')
-
-    plt.xlabel('Timestep')
-    plt.ylabel('Average Chamfer Distance')
-    plt.legend()
-    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average (Unordered VS Ordered).png'), dpi=600)
+    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average Chamfer Distance.png'), dpi=600)
     plt.clf()
 
     # Average Loss Graph - First 30 Frames
@@ -713,17 +709,7 @@ def compare_baseline_ours_rendered(real_model_1, real_model_2, real_model_3,
     plt.xlabel('Timestep')
     plt.ylabel('Average Chamfer Distance')
     plt.legend()
-    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average First 30.png'), dpi=600)
-    plt.clf()
-
-    # Average Loss Graph - First 30 Frames Without Sorted
-    plt.plot(timesteps[:30], global_losses_1.tolist()[:30], label=f'{data_type_1}')
-    plt.plot(timesteps[:30], global_losses_2.tolist()[:30], label=f'{data_type_2}')
-
-    plt.xlabel('Timestep')
-    plt.ylabel('Average Chamfer Distance')
-    plt.legend()
-    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average First 30 (Unordered VS Ordered).png'), dpi=600)
+    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average Chamfer Distance (First 30).png'), dpi=600)
     plt.clf()
 
     # Average Area Loss Graph - First COMPARE_LENGTH Frames
@@ -738,17 +724,7 @@ def compare_baseline_ours_rendered(real_model_1, real_model_2, real_model_3,
     plt.xlabel('Timestep')
     plt.ylabel('Average Area Loss')
     plt.legend()
-    plt.savefig(os.path.join(area_loss_graph_save_path, '..', 'Average.png'), dpi=600)
-    plt.clf()
-
-    # Average Area Loss Graph - First COMPARE_LENGTH Frames (Without Sorted)
-    plt.plot(timesteps[:COMPARE_LENGTH], global_area_losses_1.tolist()[:COMPARE_LENGTH], label=f'{data_type_1}')
-    plt.plot(timesteps[:COMPARE_LENGTH], global_area_losses_2.tolist()[:COMPARE_LENGTH], label=f'{data_type_2}')
-
-    plt.xlabel('Timestep')
-    plt.ylabel('Average Area Loss')
-    plt.legend()
-    plt.savefig(os.path.join(area_loss_graph_save_path, '..', 'Average (Unordered VS Ordered).png'), dpi=600)
+    plt.savefig(os.path.join(area_loss_graph_save_path, '..', 'Average Area Loss.png'), dpi=600)
     plt.clf()
 
     # Average Area Loss Graph - First 30 Frames
@@ -759,15 +735,5 @@ def compare_baseline_ours_rendered(real_model_1, real_model_2, real_model_3,
     plt.xlabel('Timestep')
     plt.ylabel('Average Area Loss')
     plt.legend()
-    plt.savefig(os.path.join(area_loss_graph_save_path, '..', 'Average First 30.png'), dpi=600)
-    plt.clf()
-
-    # Average Area Loss Graph - First 30 Frames (Without Sorted)
-    plt.plot(timesteps[:30], global_area_losses_1.tolist()[:30], label=f'{data_type_1}')
-    plt.plot(timesteps[:30], global_area_losses_2.tolist()[:30], label=f'{data_type_2}')
-
-    plt.xlabel('Timestep')
-    plt.ylabel('Average Area Loss')
-    plt.legend()
-    plt.savefig(os.path.join(area_loss_graph_save_path, '..', 'Average First 30 (Unordered VS Sorted).png'), dpi=600)
+    plt.savefig(os.path.join(area_loss_graph_save_path, '..', 'Average Area Loss (First 30).png'), dpi=600)
     plt.clf()
