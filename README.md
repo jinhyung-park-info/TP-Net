@@ -9,8 +9,9 @@
 
 
 ### Introduction
-- In this repository we release code and data for our (model name goes here) as well as a few training and testing modules.
-  To train, test, and visualize the results, please refer to "How To Run" section.
+- This repository accompanies the paper "Paper Title TBD", submitted to "Journal Name TBD".<br/>
+  We release the code and data to train, test, and visualize the result of our model.<br/>
+  The implementation is based on python 3.8 and tensorflow 2.3.0. <br/>
 
 ### How To Run
 **1. Configure Environment**
@@ -31,3 +32,11 @@
 
 
     python3 test_pred.py
+
+### Evaluation
+- Our model is compared to the following models that are capable of predicting future frames of real world softbody.<br/>
+
+   -  <a href="https://github.com/cgraber/cvpr_dNRI" target="_blank">Dynamic Neural Relational Inference (CVPR, 2020)</a>   
+   -  <a href="https://github.com/seuqaj114/paig" target="_blank">Physics As Inverse Graphics (ICLR, 2020)</a>
+   -  <a href="https://github.com/mbchang/dynamics" target="_blank">Neural Physics Engine (ICLR, 2017)</a>
+   -  <a href="https://github.com/jinhyung426/Interaction-networks_tensorflow" target="_blank">Interaction Network (NIPS, 2016)</a>
