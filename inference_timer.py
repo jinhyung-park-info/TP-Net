@@ -1,9 +1,12 @@
 from common.Utils import create_directory
 from tensorflow.keras.models import load_model
 import argparse
-import os
-from real_world_test_utils import get_real_world_input_pointset, update_input_pointset
+from real_world_test_utils import get_real_world_input_pointset, get_final_video_size, convert_to_pixel_coordinates
 from time import time, strftime, localtime
+import numpy as np
+from common.Constants import *
+
+CROP_SIZE = 922
 
 parser = argparse.ArgumentParser(description='Inference Time Calculator')
 parser.add_argument('--model_type', required=False, default='global_pointnet', choices=['global_pointnet', 'lstm'])
@@ -26,18 +29,47 @@ model = load_model(model_path, compile=False)
 
 input_pointset = get_real_world_input_pointset(case=VIDEO_NUMBER, num_input_frames=3, offset=2, test_data_type=DATA_TYPE)
 
+distance, height = get_final_video_size(VIDEO_NUMBER)
+background_path = os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{VIDEO_NUMBER}', 'timestep_0.jpg')
+background_image = cv2.imread(background_path, cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
+cv2.imwrite('background_image.jpg', background_image)
+background_image = cv2.imread('background_image.jpg', cv2.COLOR_BGR2RGB)
+video_savepath = os.path.join('result', 'inference_time')
+
 # Warm Up
+output_video = cv2.VideoWriter(os.path.join(video_savepath, f'Inference Time Video {VIDEO_NUMBER} - {MODEL_TYPE}_{MODEL_VER}_fine_tuning_{FINE_TUNE_VER}_{DATA_TYPE}.MP4'), CODEC, 30, (1150, 1040))
 for i in range(10):
-    predicted_pointset = model.predict(input_pointset)[0]
-    input_pointset = update_input_pointset(input_pointset, predicted_pointset)
+    predicted_pointset = model.predict(input_pointset)
+
+    for j in range(8):
+        pixel_coordinates = convert_to_pixel_coordinates(predicted_pointset[j][0], distance, height)
+        cv2.fillPoly(img=background_image, pts=[pixel_coordinates], color=(47, 164, 193))
+        output_video.write(background_image)
+        background_image = cv2.imread('background_image.jpg', cv2.COLOR_BGR2RGB)
+
+    input_pointset = np.array(predicted_pointset[-3:]).reshape((1, NUM_INPUT_FRAMES, NUM_PARTICLES, 2))
+
 
 # Inference Time
 print('========= Measuring Inference Time =========')
+count = 0
 start = time()
-for i in range(NUM_ITERATIONS):
-    predicted_pointset = model.predict(input_pointset)[0]
-    input_pointset = update_input_pointset(input_pointset, predicted_pointset)
+for i in range(0, NUM_ITERATIONS, 8):
+    predicted_pointset = model.predict(input_pointset)
+
+    for j in range(8):
+        pixel_coordinates = convert_to_pixel_coordinates(predicted_pointset[j][0], distance, height)
+        cv2.fillPoly(img=background_image, pts=[pixel_coordinates], color=(47, 164, 193))
+        output_video.write(background_image)
+        background_image = cv2.imread('background_image.jpg', cv2.COLOR_BGR2RGB)
+
+    input_pointset = np.array(predicted_pointset[-3:]).reshape((1, NUM_INPUT_FRAMES, NUM_PARTICLES, 2))
+
 end = time()
+
+# Save Video
+output_video.release()
+cv2.destroyAllWindows()
 
 speed_per_frame = (end - start) / NUM_ITERATIONS
 fps = 1 / speed_per_frame
@@ -66,3 +98,7 @@ file.write(f'Average Inference Time Per Frame: {speed_per_frame}\n\n')
 
 file.write(f'FPS: {fps}\n')
 file.close()
+
+# Clean Up
+if os.path.exists('background_image.jpg'):
+    os.remove('background_image.jpg')

@@ -24,9 +24,9 @@ parser.add_argument('--fine_1_ver', required=False, default=3)
 parser.add_argument('--fine_2_ver', required=False, default=2)
 parser.add_argument('--fine_3_ver', required=False, default=1)
 
-parser.add_argument('--offset', required=False, default=4)
+parser.add_argument('--offset', required=False, default=2)
 parser.add_argument('--fps', required=False, default=30)
-parser.add_argument('--env', required=False, default='simulation', choices=['real', 'simulation'])
+parser.add_argument('--env', required=False, default='real', choices=['real', 'simulation'])
 FLAGS = parser.parse_args()
 
 MODEL_1_VER = int(FLAGS.model_1_ver)
@@ -69,4 +69,4 @@ random.seed(RANDOM_SEED)
 if ENVIRONMENT == 'simulation':
     compare_baseline_ours_simulation(model_1, model_2, model_3, DATA_TYPE_1, DATA_TYPE_2, DATA_TYPE_3, result_savepath, OFFSET, FPS, output_video=False)
 else:
-    compare_baseline_ours_real_in_rendered(model_1, model_2, model_3, 3, result_savepath, OFFSET, FPS, DATA_TYPE_1, DATA_TYPE_2, DATA_TYPE_3, output_video=True)
+    compare_baseline_ours_real_in_rendered(model_1, model_2, model_3, 3, result_savepath, OFFSET, FPS, DATA_TYPE_1, DATA_TYPE_2, DATA_TYPE_3, output_video=False)

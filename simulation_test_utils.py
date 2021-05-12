@@ -12,6 +12,7 @@ from simulator.SoftBodyFactory import *
 import pygame
 from pygame.locals import *
 from random import sample
+from real_world_test_utils import sort_clockwise, determine_center_from_sparse_contour, get_non_intersected_area
 
 
 def draw_box2d_image(point_set):
@@ -192,6 +193,40 @@ def make_and_concat_three_preds_and_simulation_gt_frame(predicted_frame_1, predi
     return np.array(merged)
 
 
+def get_area_loss(ground_truth_pointset, predicted_pointset):
+
+    ground_truth_pixel_pointset = []
+    for x, y in ground_truth_pointset:
+        pixel_x = int(x * FRAME_SIZE)
+        pixel_y = int(FRAME_SIZE * (1 - y))
+        ground_truth_pixel_pointset.append([pixel_x, pixel_y])
+
+    predicted_pixel_pointset = []
+    for x, y in predicted_pointset:
+        pixel_x = int(x * FRAME_SIZE)
+        pixel_y = int(FRAME_SIZE * (1 - y))
+        predicted_pixel_pointset.append([pixel_x, pixel_y])
+
+    ground_truth_pixel_pointset = sort_clockwise(ground_truth_pixel_pointset)
+    predicted_pixel_pointset = sort_clockwise(predicted_pixel_pointset)
+
+    gt_center_x, gt_center_y = determine_center_from_sparse_contour(ground_truth_pixel_pointset)
+    pd_center_x, pd_center_y = determine_center_from_sparse_contour(predicted_pixel_pointset)
+
+    gt_origin_transformation_matrix = np.array([-gt_center_x, -gt_center_y] * NUM_PARTICLES).reshape(NUM_PARTICLES, 2)
+    pd_origin_transformation_matrix = np.array([-pd_center_x, -pd_center_y] * NUM_PARTICLES).reshape(NUM_PARTICLES, 2)
+    middle_transformation_matrix = np.array([int(FRAME_SIZE / 2), int(FRAME_SIZE / 2)] * NUM_PARTICLES).reshape(NUM_PARTICLES, 2)
+
+    ground_truth_pixel_pointset = ground_truth_pixel_pointset + gt_origin_transformation_matrix + middle_transformation_matrix
+    predicted_pixel_pointset = predicted_pixel_pointset + pd_origin_transformation_matrix + middle_transformation_matrix
+
+    contours = [ground_truth_pixel_pointset, predicted_pixel_pointset]
+    non_intersected_area = get_non_intersected_area((FRAME_SIZE, FRAME_SIZE, 3), contours[0], contours[1])
+    non_intersected_area = non_intersected_area / (FRAME_SIZE * FRAME_SIZE)
+
+    return non_intersected_area
+
+
 def compare_baseline_ours_simulation(model_1, model_2, model_3, data_1_type, data_2_type, data_3_type, save_path, offset, fps, output_video):
 
     cases = TEST_CASES[:15]
@@ -199,7 +234,12 @@ def compare_baseline_ours_simulation(model_1, model_2, model_3, data_1_type, dat
     global_losses_2 = np.array([0.0] * COMPARE_LENGTH)
     global_losses_3 = np.array([0.0] * COMPARE_LENGTH)
 
+    global_area_losses_1 = np.array([0.0] * COMPARE_LENGTH)
+    global_area_losses_2 = np.array([0.0] * COMPARE_LENGTH)
+    global_area_losses_3 = np.array([0.0] * COMPARE_LENGTH)
+
     chamfer_graph_save_path = create_directory(os.path.join(save_path, 'Loss Graph', 'Chamfer'))
+    area_loss_graph_save_path = create_directory(os.path.join(save_path, 'Loss Graph', 'Area Loss'))
 
     for case_num, test_case in enumerate(cases):
 
@@ -216,6 +256,10 @@ def compare_baseline_ours_simulation(model_1, model_2, model_3, data_1_type, dat
         losses_1 = []
         losses_2 = []
         losses_3 = []
+
+        area_losses_1 = []
+        area_losses_2 = []
+        area_losses_3 = []
 
         if output_video:
             output_video = cv2.VideoWriter(os.path.join(save_path, f'Test Case_{case_num + 1}.MP4'), CODEC, fps, (VIDEO_HEIGHT * 3, VIDEO_HEIGHT))
@@ -234,6 +278,10 @@ def compare_baseline_ours_simulation(model_1, model_2, model_3, data_1_type, dat
             predicted_pointset_2 = model_2.predict(input_info_2)[0]
             predicted_pointset_3 = model_3.predict(input_info_3)[0]
 
+            area_loss_1 = get_area_loss(np.array(normalized_ground_truth_pointset[timestep], dtype='float32'), predicted_pointset_1[0])
+            area_loss_2 = get_area_loss(np.array(normalized_ground_truth_pointset[timestep], dtype='float32'), predicted_pointset_2[0])
+            area_loss_3 = get_area_loss(np.array(normalized_ground_truth_pointset[timestep], dtype='float32'), predicted_pointset_3[0])
+
             loss_1 = get_cd_loss_func(np.array([normalized_ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_1)
             loss_2 = get_cd_loss_func(np.array([normalized_ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_2)
             loss_3 = get_cd_loss_func(np.array([normalized_ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_3)
@@ -242,6 +290,10 @@ def compare_baseline_ours_simulation(model_1, model_2, model_3, data_1_type, dat
             losses_1.append(loss_1)
             losses_2.append(loss_2)
             losses_3.append(loss_3)
+
+            area_losses_1.append(area_loss_1)
+            area_losses_2.append(area_loss_2)
+            area_losses_3.append(area_loss_3)
 
             if output_video:
                 coordinates_1 = denormalize_pointset(predicted_pointset_1[0])
@@ -264,6 +316,7 @@ def compare_baseline_ours_simulation(model_1, model_2, model_3, data_1_type, dat
             output_video.release()
             cv2.destroyAllWindows()
 
+        # Loss Graph (Chamfer Distance)
         plt.plot(timesteps, losses_1, label=f'{data_1_type}')
         plt.plot(timesteps, losses_2, label=f'{data_2_type}')
         plt.plot(timesteps, losses_3, label=f'{data_3_type}')
@@ -274,11 +327,26 @@ def compare_baseline_ours_simulation(model_1, model_2, model_3, data_1_type, dat
         plt.savefig(os.path.join(chamfer_graph_save_path, 'Test Case {}.png'.format(case_num + 1)), dpi=600)
         plt.clf()
 
+        # Loss Graph (Area Loss)
+        plt.plot(timesteps, area_losses_1, label=f'{data_1_type}')
+        plt.plot(timesteps, area_losses_2, label=f'{data_2_type}')
+        plt.plot(timesteps, area_losses_3, label=f'{data_3_type}')
+
+        plt.xlabel('Timestep')
+        plt.ylabel('Area Loss')
+        plt.legend()
+        plt.savefig(os.path.join(area_loss_graph_save_path, 'Test Case {}.png'.format(case_num + 1)), dpi=600)
+        plt.clf()
+
         global_losses_1 += losses_1[:COMPARE_LENGTH]
         global_losses_2 += losses_2[:COMPARE_LENGTH]
         global_losses_3 += losses_3[:COMPARE_LENGTH]
 
-    # Average Loss Graph
+        global_area_losses_1 += np.array(area_losses_1[:COMPARE_LENGTH])
+        global_area_losses_2 += np.array(area_losses_2[:COMPARE_LENGTH])
+        global_area_losses_3 += np.array(area_losses_3[:COMPARE_LENGTH])
+
+    # Average Loss Graph - First COMPARE_LENGTH Frames
     global_losses_1 /= len(cases)
     global_losses_2 /= len(cases)
     global_losses_3 /= len(cases)
@@ -293,6 +361,7 @@ def compare_baseline_ours_simulation(model_1, model_2, model_3, data_1_type, dat
     plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average Chamfer Distance.png'), dpi=600)
     plt.clf()
 
+    # Average Loss Graph - First 30 Frames
     plt.plot(timesteps[:30], global_losses_1.tolist()[:30], label=f'{data_1_type}')
     plt.plot(timesteps[:30], global_losses_2.tolist()[:30], label=f'{data_2_type}')
     plt.plot(timesteps[:30], global_losses_3.tolist()[:30], label=f'{data_3_type}')
@@ -301,4 +370,30 @@ def compare_baseline_ours_simulation(model_1, model_2, model_3, data_1_type, dat
     plt.ylabel('Average Chamfer Distance')
     plt.legend()
     plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average Chamfer Distance (First 30).png'), dpi=600)
+    plt.clf()
+
+    # Average Area Loss Graph - First COMPARE_LENGTH Frames
+    global_area_losses_1 /= len(REAL_WORLD_TEST_CASES)
+    global_area_losses_2 /= len(REAL_WORLD_TEST_CASES)
+    global_area_losses_3 /= len(REAL_WORLD_TEST_CASES)
+
+    plt.plot(timesteps[:COMPARE_LENGTH], global_area_losses_1.tolist(), label=f'{data_1_type}')
+    plt.plot(timesteps[:COMPARE_LENGTH], global_area_losses_2.tolist(), label=f'{data_2_type}')
+    plt.plot(timesteps[:COMPARE_LENGTH], global_area_losses_3.tolist(), label=f'{data_3_type}')
+
+    plt.xlabel('Timestep')
+    plt.ylabel('Average Area Loss')
+    plt.legend()
+    plt.savefig(os.path.join(area_loss_graph_save_path, '..', 'Average Area Loss.png'), dpi=600)
+    plt.clf()
+
+    # Average Area Loss Graph - First 30 Frames
+    plt.plot(timesteps[:30], global_area_losses_1.tolist()[:30], label=f'{data_1_type}')
+    plt.plot(timesteps[:30], global_area_losses_2.tolist()[:30], label=f'{data_2_type}')
+    plt.plot(timesteps[:30], global_area_losses_3.tolist()[:30], label=f'{data_3_type}')
+
+    plt.xlabel('Timestep')
+    plt.ylabel('Average Area Loss')
+    plt.legend()
+    plt.savefig(os.path.join(area_loss_graph_save_path, '..', 'Average Area Loss (First 30).png'), dpi=600)
     plt.clf()

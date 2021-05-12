@@ -9,17 +9,17 @@ from common.Utils import create_directory
 # ========================= Model Constants ====================================
 
 parser = argparse.ArgumentParser(description='Model Testing Options')
-parser.add_argument('--model_ver', required=False, default=25)
-parser.add_argument('--real_model_ver', required=False, default=2)
+parser.add_argument('--model_ver', required=False, default=35)
+parser.add_argument('--real_model_ver', required=False, default=1)
 parser.add_argument('--model_type', required=False, default='lstm', choices=['lstm', 'global_pointnet', 'local_pointnet'])
 parser.add_argument('--num_input', required=False, default=3)
 parser.add_argument('--num_output', required=False, default=8)
-parser.add_argument('--offset', required=False, default=2)
+parser.add_argument('--offset', required=False, default=4)
 parser.add_argument('--length', required=False, default=100)
 parser.add_argument('--fps', required=False, default=30)
 parser.add_argument('--test_type', required=False, default='test', choices=['test', 'trained'])
 parser.add_argument('--test_data_type', required=False, default='ordered', choices=['ordered', 'unordered', 'sorted'])
-parser.add_argument('--env', required=False, default='rendered', choices=['simulation', 'real', 'both', 'rendered', 'simulation_all'])
+parser.add_argument('--env', required=False, default='simulation', choices=['simulation', 'real', 'both', 'rendered', 'simulation_all'])
 FLAGS = parser.parse_args()
 
 SIM_MODEL_VER = int(FLAGS.model_ver)
