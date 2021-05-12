@@ -34,7 +34,7 @@
     python3 test_pred.py
 
 ### Evaluation
-- Our model is compared to the following models that are capable of predicting future frames of real world softbody.<br/>
+- Our model is compared with the following models that are capable of predicting future frames of real world softbodies.<br/>
 
    -  <a href="https://github.com/cgraber/cvpr_dNRI" target="_blank">Dynamic Neural Relational Inference (CVPR, 2020)</a>   
    -  <a href="https://github.com/seuqaj114/paig" target="_blank">Physics As Inverse Graphics (ICLR, 2020)</a>
