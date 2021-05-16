@@ -27,18 +27,18 @@ parser.add_argument('--patience', required=False, default=40)
 parser.add_argument('--lr', required=False, default=0.0001, help='Must be 1/10 of original lr')
 
 # Loading Model Related
-parser.add_argument('--model_type', required=False, default='lstm', choices=['lstm', 'global_pointnet', 'local_pointnet'])
-parser.add_argument('--retrain_ver', required=False, default=24)
-parser.add_argument('--data_type', required=False, default='sorted', choices=['unordered', 'ordered', 'sorted'])
+parser.add_argument('--model_type', required=False, default='global_pointnet', choices=['lstm', 'global_pointnet', 'local_pointnet'])
+parser.add_argument('--retrain_ver', required=False, default=38)
+parser.add_argument('--data_type', required=False, default='unordered', choices=['unordered', 'ordered', 'sorted'])
 parser.add_argument('--data_offset', required=False, default=2)
 parser.add_argument('--num_input_frames', required=False, default=3)
 parser.add_argument('--num_output_frames', required=False, default=8)
-parser.add_argument('--loss_type', required=False, default='chamfer_and_mae', choices=['chamfer', 'mse', 'chamfer_and_shape', 'chamfer_and_mae'])
+parser.add_argument('--loss_type', required=False, default='chamfer', choices=['chamfer', 'mse', 'chamfer_and_shape', 'chamfer_and_mae'])
 parser.add_argument('--shape_weight', required=False, default=0)
 
 # Output Model Related
 parser.add_argument('--ver', required=False, default=1)
-parser.add_argument('--retrain_scope', required=False, default='full', choices=['full', 'lstm', 'lstm_last'])
+parser.add_argument('--retrain_scope', required=False, default='lstm', choices=['full', 'lstm', 'lstm_last', 'lstm + global extractor'])
 
 FLAGS = parser.parse_args()
 
@@ -63,7 +63,6 @@ BASE_PATH = create_directory(os.path.join('./result', MODEL_TYPE, f'version_{RET
 print('========================= Preparing Model =========================\n')
 
 model = load_model(filepath=os.path.join('result', f'{MODEL_TYPE}', f'version_{RETRAIN_VERSION}', f'{MODEL_TYPE}_model.h5'), compile=False)
-model.summary()
 
 if RETRAIN_SCOPE == 'lstm':
     for layer in model.layers:
@@ -88,6 +87,30 @@ elif RETRAIN_SCOPE == 'lstm_last':
             layer.trainable = False
         else:
             layer.trainable = True
+
+elif RETRAIN_SCOPE == 'lstm + global extractor':
+    for layer in model.layers:
+        if layer != model.get_layer('functional_3'):
+            layer.trainable = False
+
+    single_frame_prediction_model = model.get_layer('functional_3')
+
+    for i, layer in enumerate(single_frame_prediction_model.layers):
+        if i >= 10 or layer == single_frame_prediction_model.get_layer('functional_1'):
+            layer.trainable = True
+        else:
+            layer.trainable = False
+
+    global_extractor = single_frame_prediction_model.get_layer('functional_1')
+    for layer in global_extractor.layers:
+        if layer == global_extractor.get_layer('dense_4'):
+            layer.trainable = True
+        else:
+            layer.trainable = False
+
+    single_frame_prediction_model.summary()
+    global_extractor.summary()
+    model.summary()
 
 else:
     for layer in model.layers:
@@ -123,19 +146,16 @@ model.compile(loss={'tf_op_layer_output1': first_loss,
                     'tf_op_layer_output8': base_loss},
               optimizer=tf.keras.optimizers.Adam(lr=LEARNING_RATE))
 
-
-single_frame_prediction_model.summary()
-
 print('========================= Loading Data =========================\n')
 
-x_train, ptr = load_json(f'data/real_world/offset_{DATA_OFFSET}_input_{NUM_INPUT}_output_{NUM_OUTPUT}/x_train_pred_{DATA_TYPE}.json')
+x_train, ptr = load_json(f'data/real_world/preprocessed_data/offset_{DATA_OFFSET}_input_{NUM_INPUT}_output_{NUM_OUTPUT}/x_train_pred_{DATA_TYPE}.json')
 ptr.close()
-y_train, ptr = load_json(f'data/real_world/offset_{DATA_OFFSET}_input_{NUM_INPUT}_output_{NUM_OUTPUT}/y_train_pred_{DATA_TYPE}.json')
+y_train, ptr = load_json(f'data/real_world/preprocessed_data/offset_{DATA_OFFSET}_input_{NUM_INPUT}_output_{NUM_OUTPUT}/y_train_pred_{DATA_TYPE}.json')
 ptr.close()
 
-x_val, ptr = load_json(f'data/real_world/offset_{DATA_OFFSET}_input_{NUM_INPUT}_output_{NUM_OUTPUT}/x_val_pred_{DATA_TYPE}.json')
+x_val, ptr = load_json(f'data/real_world/preprocessed_data/offset_{DATA_OFFSET}_input_{NUM_INPUT}_output_{NUM_OUTPUT}/x_val_pred_{DATA_TYPE}.json')
 ptr.close()
-y_val, ptr = load_json(f'data/real_world/offset_{DATA_OFFSET}_input_{NUM_INPUT}_output_{NUM_OUTPUT}/y_val_pred_{DATA_TYPE}.json')
+y_val, ptr = load_json(f'data/real_world/preprocessed_data/offset_{DATA_OFFSET}_input_{NUM_INPUT}_output_{NUM_OUTPUT}/y_val_pred_{DATA_TYPE}.json')
 ptr.close()
 
 y_train_0 = np.array(y_train[0])

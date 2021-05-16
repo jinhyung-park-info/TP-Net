@@ -214,6 +214,11 @@ def generate_train_data(collision_dict,
     print(x_train_shape)
     print(y_train_shape)
 
+    if num_predictions == 1:
+        y_train_ordered = y_train_ordered[0]
+        y_train_unordered = y_train_unordered[0]
+        y_train_sorted = y_train_sorted[0]
+
     savepath = create_directory(f'../preprocessed_data/offset_{offset}_input_{NUM_INPUT_FRAMES}_output_{num_predictions}')
 
     print('=========== Saving Unordered Train Data ===========')
@@ -290,6 +295,11 @@ def generate_val_data(val_cases, num_predictions, offset):
 
     print(x_val_shape)
     print(y_val_shape)
+
+    if num_predictions == 1:
+        y_val_ordered = y_val_ordered[0]
+        y_val_unordered = y_val_unordered[0]
+        y_val_sorted = y_val_sorted[0]
 
     savepath = create_directory(f'../preprocessed_data/offset_{offset}_input_{NUM_INPUT_FRAMES}_output_{num_predictions}')
 

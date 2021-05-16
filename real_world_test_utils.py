@@ -10,7 +10,7 @@ import re
 #import pygame
 #from pygame.locals import *
 from random import sample
-from loss import get_cd_loss_func
+from loss import get_cd_loss_func, real_chamfer_distance
 import matplotlib.pyplot as plt
 
 VIDEO_WIDTH = 1800
@@ -664,9 +664,9 @@ def compare_baseline_ours_real_in_rendered(real_model_1, real_model_2, real_mode
             model_3_center_x_coordinates.append(center_coordinates_3[2])
             model_3_center_y_coordinates.append(center_coordinates_3[3])
 
-            chamfer_loss_1 = get_cd_loss_func(np.array([ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_1)
-            chamfer_loss_2 = get_cd_loss_func(np.array([ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_2)
-            chamfer_loss_3 = get_cd_loss_func(np.array([ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_3)
+            chamfer_loss_1 = real_chamfer_distance(np.array([ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_1)
+            chamfer_loss_2 = real_chamfer_distance(np.array([ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_2)
+            chamfer_loss_3 = real_chamfer_distance(np.array([ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_3)
 
             timesteps.append(timestep)
 

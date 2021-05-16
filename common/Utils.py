@@ -139,7 +139,8 @@ def write_model_info(path,
     file.write(f'Random Seed               : {RANDOM_SEED}\n\n\n')
 
     file.write('=============== Single Frame Prediction Model Summary =============\n\n')
-    model.get_layer('functional_3').summary(print_fn=lambda x: file.write(x + '\n\n\n'))
+    if model is not None:
+        model.get_layer('functional_3').summary(print_fn=lambda x: file.write(x + '\n\n\n'))
     file.close()
 
 

@@ -9,7 +9,7 @@ if __name__ == '__main__':
 
     # Prediction Model
     OFFSET = 4
-    NUM_PREDICTIONS = 8
+    NUM_PREDICTIONS = 1
     # print(find_min_max())
 
     generate_prediction_model_data(NUM_ANIMATIONS, NUM_PREDICTIONS, OFFSET)

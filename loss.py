@@ -148,6 +148,14 @@ def mse_base(y_true, y_pred):
     return tf.keras.losses.mean_squared_error(y_true, y_pred)
 
 
+def real_chamfer_distance(y_true, y_pred):
+    return chamfer_distance_with_batch(y_true, y_pred)
+
+
+def real_chamfer_distance_for_first(y_true, y_pred):
+    return chamfer_distance_with_batch(y_true, y_pred) * 9.0
+
+
 if __name__ == '__main__':
     """
     pred_2d = [[0.2398509979248047, 0.07136905193328857], [0.08903583884239197, 0.10960081219673157], [0.06465977430343628, 0.1877201795578003],
@@ -167,8 +175,9 @@ if __name__ == '__main__':
              [0.09833888888888888, 0.2141111111111111], [0.09170555555555555, 0.17808888888888885]]
     """
 
-    pred_2d = [[1, 0], [2, 0], [100, 0]]
-    gt_2d = [[1, 0], [2, 0], [101.5, 0]]
+
+    gt_2d = [[1, 0], [2, 0]]
+    pred_2d = [[1, 0], [1, 0]]
 
     gt_2d = tf.constant([gt_2d] * 512, dtype=tf.float32)
     pred_2d = tf.constant([pred_2d] * 512, dtype=tf.float32)
@@ -178,5 +187,11 @@ if __name__ == '__main__':
     tic = time.time()
     print('Chamfer Loss: ')
     print(get_cd_loss_func(gt_2d, pred_2d))
-    toc = time.time() - tic
-    print("elapsed=", toc)  #
+    print('Real Chamfer Loss: ')
+    print(real_chamfer_distance(gt_2d, pred_2d))
+    #toc = time.time() - tic
+    #print("elapsed=", toc)  #
+
+
+
+
