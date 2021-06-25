@@ -72,6 +72,32 @@ def normalize_pointset(pointset):
     return nested_normalized
 
 
+def normalize_nested_pointset(pointset):
+    normalized = []
+
+    for j in range(NUM_PARTICLES):
+        normalized_x = (pointset[j][0] - SAT_MIN) / (SAT_MAX - SAT_MIN)
+        normalized_y = (pointset[j][1] - SAT_MIN) / (SAT_MAX - SAT_MIN)
+        if normalized_x < 0:
+            normalized_x = 0.0
+
+        elif normalized_x > 1.0:
+            normalized_x = 1.0
+
+        if normalized_y < 0:
+            normalized_y = 0.0
+
+        elif normalized_y > 1.0:
+            normalized_y = 1.0
+
+
+        normalized.append([normalized_x, normalized_y])
+
+    assert len(normalized) == NUM_PARTICLES
+    return normalized
+
+
+
 def denormalize_pointset(pointset):
     denormalized = []
 
@@ -84,6 +110,21 @@ def denormalize_pointset(pointset):
 
     assert len(denormalized) == NUM_PARTICLES
     return denormalized
+
+
+def denormalize_dnri_pointset(pointset):
+    denormalized = []
+
+    for j in range(NUM_PARTICLES):
+        denormalized_x = (pointset[j][0] + 1) * (SAT_MAX - SAT_MIN) / 2 + SAT_MIN
+        denormalized_y = (pointset[j][1] + 1) * (SAT_MAX - SAT_MIN) / 2 + SAT_MIN
+        #assert SAT_MIN <= denormalized_x <= SAT_MAX
+        #assert SAT_MIN <= denormalized_y <= SAT_MAX
+        denormalized.append([denormalized_x, denormalized_y])
+
+    assert len(denormalized) == NUM_PARTICLES
+    return denormalized
+
 
 
 def shuffle_pointset(pointset):

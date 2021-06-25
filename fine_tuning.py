@@ -27,18 +27,18 @@ parser.add_argument('--patience', required=False, default=40)
 parser.add_argument('--lr', required=False, default=0.0001, help='Must be 1/10 of original lr')
 
 # Loading Model Related
-parser.add_argument('--model_type', required=False, default='global_pointnet', choices=['lstm', 'global_pointnet', 'local_pointnet'])
-parser.add_argument('--retrain_ver', required=False, default=38)
-parser.add_argument('--data_type', required=False, default='unordered', choices=['unordered', 'ordered', 'sorted'])
+parser.add_argument('--model_type', required=False, default='lstm', choices=['lstm', 'global_pointnet', 'local_pointnet'])
+parser.add_argument('--retrain_ver', required=False, default=45)
+parser.add_argument('--data_type', required=False, default='sorted', choices=['unordered', 'ordered', 'sorted'])
 parser.add_argument('--data_offset', required=False, default=2)
 parser.add_argument('--num_input_frames', required=False, default=3)
 parser.add_argument('--num_output_frames', required=False, default=8)
-parser.add_argument('--loss_type', required=False, default='chamfer', choices=['chamfer', 'mse', 'chamfer_and_shape', 'chamfer_and_mae'])
+parser.add_argument('--loss_type', required=False, default='mse', choices=['chamfer', 'mse', 'chamfer_and_shape', 'chamfer_and_mae'])
 parser.add_argument('--shape_weight', required=False, default=0)
 
 # Output Model Related
 parser.add_argument('--ver', required=False, default=1)
-parser.add_argument('--retrain_scope', required=False, default='lstm', choices=['full', 'lstm', 'lstm_last', 'lstm + global extractor'])
+parser.add_argument('--retrain_scope', required=False, default='full', choices=['full', 'lstm', 'lstm_last', 'lstm + global extractor'])
 
 FLAGS = parser.parse_args()
 
@@ -119,6 +119,8 @@ else:
         single_frame_prediction_model = model.get_layer('functional_3')
     else:
         single_frame_prediction_model = model.get_layer('functional_1')
+        single_frame_prediction_model.summary()
+        exit(0)
 
 
 if LOSS_TYPE == 'chamfer':

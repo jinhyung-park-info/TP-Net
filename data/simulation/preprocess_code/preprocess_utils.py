@@ -18,7 +18,7 @@ def generate_prediction_model_data(num_animations, num_predictions, offset):
     print('==================== Generating Val Data =========================')
     x_val_shape, y_val_shape = generate_val_data(val_cases, num_predictions, offset)
 
-    print('==================== Writing Train, Val, Test Split Info to Text =========================')
+    print('==================== Writing Train, Val Split Info to Text =========================')
     write_animation_split_info(x_train_shape, y_train_shape, x_val_shape, y_val_shape,
                                full_train_cases, val_cases, test_cases,
                                offset, num_predictions)
@@ -95,8 +95,8 @@ def generate_train_data(collision_dict,
                         full_train_cases,
                         num_predictions,
                         offset,
-                        normal_case_per_animation=15,
-                        collision_case_per_animation=45):
+                        normal_case_per_animation=5,
+                        collision_case_per_animation=15):
 
     sequence_range = list(range(NUM_SEQUENCE_PER_ANIMATION - ((num_predictions + NUM_INPUT_FRAMES - 1) * offset)))
 
@@ -204,15 +204,22 @@ def generate_train_data(collision_dict,
             for i in range(num_predictions):
                 y_train_sorted[i].append(sorted_y[i])
 
-    print('=========== Checking Train Data Type ===========')
-    x_train_shape = np.array(x_train_unordered).shape
-    y_train_shape = np.array(y_train_unordered).shape
+    print('=========== Converting it to Numpy Arrays ===========')
 
-    assert x_train_shape == np.array(x_train_sorted).shape == np.array(x_train_ordered).shape
-    assert y_train_shape == np.array(y_train_sorted).shape == np.array(y_train_ordered).shape
+    x_train_unordered = np.array(x_train_unordered)
+    y_train_unordered = np.array(y_train_unordered)
 
-    print(x_train_shape)
-    print(y_train_shape)
+    x_train_sorted = np.array(x_train_sorted)
+    y_train_sorted = np.array(y_train_sorted)
+
+    x_train_ordered = np.array(x_train_ordered)
+    y_train_ordered = np.array(y_train_ordered)
+
+    assert x_train_unordered.shape == x_train_sorted.shape == x_train_ordered.shape
+    assert y_train_unordered.shape == y_train_sorted.shape == y_train_ordered.shape
+
+    print(x_train_unordered.shape)
+    print(y_train_unordered.shape)
 
     if num_predictions == 1:
         y_train_ordered = y_train_ordered[0]
@@ -222,24 +229,18 @@ def generate_train_data(collision_dict,
     savepath = create_directory(f'../preprocessed_data/offset_{offset}_input_{NUM_INPUT_FRAMES}_output_{num_predictions}')
 
     print('=========== Saving Unordered Train Data ===========')
-    ptr = write_json(x_train_unordered, f'{savepath}/x_train_pred_unordered.json')
-    ptr.close()
-    ptr = write_json(y_train_unordered, f'{savepath}/y_train_pred_unordered.json')
-    ptr.close()
+    np.save(f'{savepath}/x_train_pred_unordered.npy', x_train_unordered)
+    np.save(f'{savepath}/y_train_pred_unordered.npy', y_train_unordered)
 
     print('=========== Saving Ordered Train Data ===========')
-    ptr = write_json(x_train_ordered, f'{savepath}/x_train_pred_ordered.json')
-    ptr.close()
-    ptr = write_json(y_train_ordered, f'{savepath}/y_train_pred_ordered.json')
-    ptr.close()
+    np.save(f'{savepath}/x_train_pred_ordered.npy', x_train_ordered)
+    np.save(f'{savepath}/y_train_pred_ordered.npy', y_train_ordered)
 
     print('=========== Saving Sorted Train Data ===========')
-    ptr = write_json(x_train_sorted, f'{savepath}/x_train_pred_sorted.json')
-    ptr.close()
-    ptr = write_json(y_train_sorted, f'{savepath}/y_train_pred_sorted.json')
-    ptr.close()
+    np.save(f'{savepath}/x_train_pred_sorted.npy', x_train_sorted)
+    np.save(f'{savepath}/y_train_pred_sorted.npy', y_train_sorted)
 
-    return str(x_train_shape), str(y_train_shape)
+    return str(x_train_unordered.shape), str(y_train_unordered.shape)
 
 
 def generate_val_data(val_cases, num_predictions, offset):
@@ -255,7 +256,7 @@ def generate_val_data(val_cases, num_predictions, offset):
     x_val_sorted = []
     y_val_sorted = [[] for i in range(num_predictions)]
 
-    for val_case in tqdm(val_cases):
+    for val_case in tqdm(val_cases[:100]):
 
         pointsets, ptr = load_json(os.path.join(RAW_DATA_PATH,
                                                 'pointset',
@@ -286,15 +287,22 @@ def generate_val_data(val_cases, num_predictions, offset):
             for i in range(num_predictions):
                 y_val_sorted[i].append(sorted_y[i])
 
-    print('=========== Checking Val Data Type ===========')
-    x_val_shape = np.array(x_val_unordered).shape
-    y_val_shape = np.array(y_val_unordered).shape
+    print('=========== Converting it to Numpy Arrays ===========')
 
-    assert x_val_shape == np.array(x_val_sorted).shape == np.array(x_val_ordered).shape
-    assert y_val_shape == np.array(y_val_sorted).shape == np.array(y_val_ordered).shape
+    x_val_unordered = np.array(x_val_unordered)
+    y_val_unordered = np.array(y_val_unordered)
 
-    print(x_val_shape)
-    print(y_val_shape)
+    x_val_sorted = np.array(x_val_sorted)
+    y_val_sorted = np.array(y_val_sorted)
+
+    x_val_ordered = np.array(x_val_ordered)
+    y_val_ordered = np.array(y_val_ordered)
+
+    assert x_val_unordered.shape == x_val_sorted.shape == x_val_ordered.shape
+    assert y_val_unordered.shape == y_val_sorted.shape == y_val_ordered.shape
+
+    print(x_val_unordered.shape)
+    print(y_val_unordered.shape)
 
     if num_predictions == 1:
         y_val_ordered = y_val_ordered[0]
@@ -304,24 +312,18 @@ def generate_val_data(val_cases, num_predictions, offset):
     savepath = create_directory(f'../preprocessed_data/offset_{offset}_input_{NUM_INPUT_FRAMES}_output_{num_predictions}')
 
     print('=========== Saving Unordered Val Data ===========')
-    ptr = write_json(x_val_unordered, f'{savepath}/x_val_pred_unordered.json')
-    ptr.close()
-    ptr = write_json(y_val_unordered, f'{savepath}/y_val_pred_unordered.json')
-    ptr.close()
+    np.save(f'{savepath}/x_val_pred_unordered.npy', x_val_unordered)
+    np.save(f'{savepath}/y_val_pred_unordered.npy', y_val_unordered)
 
     print('=========== Saving Ordered Val Data ===========')
-    ptr = write_json(x_val_ordered, f'{savepath}/x_val_pred_ordered.json')
-    ptr.close()
-    ptr = write_json(y_val_ordered, f'{savepath}/y_val_pred_ordered.json')
-    ptr.close()
+    np.save(f'{savepath}/x_val_pred_ordered.npy', x_val_ordered)
+    np.save(f'{savepath}/y_val_pred_ordered.npy', y_val_ordered)
 
     print('=========== Saving Sorted Val Data ===========')
-    ptr = write_json(x_val_sorted, f'{savepath}/x_val_pred_sorted.json')
-    ptr.close()
-    ptr = write_json(y_val_sorted, f'{savepath}/y_val_pred_sorted.json')
-    ptr.close()
+    np.save(f'{savepath}/x_val_pred_sorted.npy', x_val_sorted)
+    np.save(f'{savepath}/y_val_pred_sorted.npy', y_val_sorted)
 
-    return str(x_val_shape), str(y_val_shape)
+    return str(x_val_unordered.shape), str(y_val_unordered.shape)
 
 
 def write_animation_split_info(x_train_shape, y_train_shape, x_val_shape, y_val_shape, full_train_cases, val_cases, test_cases, offset, num_predictions):

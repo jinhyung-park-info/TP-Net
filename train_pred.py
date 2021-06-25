@@ -6,7 +6,7 @@ from prediction_models import *
 import matplotlib.pyplot as plt
 from common.Constants import RANDOM_SEED
 import numpy as np
-from common.Utils import load_json, write_model_info
+from common.Utils import write_model_info
 import random
 
 # ========================= For Reproducibility ================================
@@ -20,18 +20,18 @@ random.seed(RANDOM_SEED)
 # ========================= Model Constants ====================================
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--epochs', required=False, default=500)
+parser.add_argument('--epochs', required=False, default=400)
 parser.add_argument('--batch_size', required=False, default=128)
 parser.add_argument('--patience', required=False, default=100)
 parser.add_argument('--lr', required=False, default=0.001)
 
-parser.add_argument('--model_type', required=False, default='lstm', choices=['lstm', 'global_pointnet', 'local_pointnet'])
-parser.add_argument('--transform', required=False, default=0)
-parser.add_argument('--ver', required=False, default=29)
+parser.add_argument('--model_type', required=False, default='global_pointnet', choices=['lstm', 'global_pointnet', 'local_pointnet'])
+parser.add_argument('--transform', required=False, default=1)
+parser.add_argument('--ver', required=False, default=47)
 parser.add_argument('--data_offset', required=False, default=4)
-parser.add_argument('--data_type', required=False, default='ordered', choices=['ordered', 'unordered', 'sorted'])
+parser.add_argument('--data_type', required=False, default='unordered', choices=['ordered', 'unordered', 'sorted'])
 parser.add_argument('--num_predictions', required=False, default=8)
-parser.add_argument('--loss_type', required=False, default='chamfer_and_mae')
+parser.add_argument('--loss_type', required=False, default='chamfer')
 parser.add_argument('--shape_weight', required=False, default=0)
 
 FLAGS = parser.parse_args()
@@ -52,38 +52,14 @@ BASE_PATH = create_directory(os.path.join('./result', MODEL_TYPE, f'version_{MOD
 
 print('========================= Loading Data =========================\n')
 
-x_train, ptr = load_json(f'./data/simulation/offset_{DATA_OFFSET}_num_pred_{NUM_PREDICTIONS}/x_train_pred_{DATA_TYPE}.json')
-ptr.close()
-y_train, ptr = load_json(f'./data/simulation/offset_{DATA_OFFSET}_num_pred_{NUM_PREDICTIONS}/y_train_pred_{DATA_TYPE}.json')
-ptr.close()
+x_train = np.load(f'./data/simulation/preprocessed_data/offset_{DATA_OFFSET}_input_{NUM_INPUT_FRAMES}_output_{NUM_PREDICTIONS}/x_train_pred_{DATA_TYPE}.npy')
+y_train = np.load(f'./data/simulation/preprocessed_data/offset_{DATA_OFFSET}_input_{NUM_INPUT_FRAMES}_output_{NUM_PREDICTIONS}/y_train_pred_{DATA_TYPE}.npy')
 
-x_val, ptr = load_json(f'./data/simulation/offset_{DATA_OFFSET}_num_pred_{NUM_PREDICTIONS}/x_val_pred_{DATA_TYPE}.json')
-ptr.close()
-y_val, ptr = load_json(f'./data/simulation/offset_{DATA_OFFSET}_num_pred_{NUM_PREDICTIONS}/y_val_pred_{DATA_TYPE}.json')
-ptr.close()
+x_val = np.load(f'./data/simulation/preprocessed_data/offset_{DATA_OFFSET}_input_{NUM_INPUT_FRAMES}_output_{NUM_PREDICTIONS}/x_val_pred_{DATA_TYPE}.npy')
+y_val = np.load(f'./data/simulation/preprocessed_data/offset_{DATA_OFFSET}_input_{NUM_INPUT_FRAMES}_output_{NUM_PREDICTIONS}/y_val_pred_{DATA_TYPE}.npy')
 
-y_train_0 = np.array(y_train[0])
-y_train_1 = np.array(y_train[1])
-y_train_2 = np.array(y_train[2])
-y_train_3 = np.array(y_train[3])
-y_train_4 = np.array(y_train[4])
-y_train_5 = np.array(y_train[5])
-y_train_6 = np.array(y_train[6])
-y_train_7 = np.array(y_train[7])
-y_train = [y_train_0, y_train_1, y_train_2, y_train_3, y_train_4, y_train_5, y_train_6, y_train_7]
-
-y_val_0 = np.array(y_val[0])
-y_val_1 = np.array(y_val[1])
-y_val_2 = np.array(y_val[2])
-y_val_3 = np.array(y_val[3])
-y_val_4 = np.array(y_val[4])
-y_val_5 = np.array(y_val[5])
-y_val_6 = np.array(y_val[6])
-y_val_7 = np.array(y_val[7])
-y_val = [y_val_0, y_val_1, y_val_2, y_val_3, y_val_4, y_val_5, y_val_6, y_val_7]
-
-x_train = np.array(x_train)
-x_val = np.array(x_val)
+y_train = [y_train[i] for i in range(NUM_PREDICTIONS)]
+y_val = [y_val[i] for i in range(NUM_PREDICTIONS)]
 
 print('========================= Building Model =========================\n')
 
@@ -139,9 +115,9 @@ write_model_info(path=os.path.join(BASE_PATH),
                  data_type=DATA_TYPE,
                  offset=DATA_OFFSET,
                  train_input=x_train.shape,
-                 train_output=(NUM_PREDICTIONS, ) + y_train_0.shape,
+                 train_output=(NUM_PREDICTIONS, ) + y_train[0].shape,
                  val_input=x_val.shape,
-                 val_output=(NUM_PREDICTIONS, ) + y_val_0.shape,
+                 val_output=(NUM_PREDICTIONS, ) + y_val[0].shape,
                  batch_size=BATCH_SIZE,
                  patience=PATIENCE)
 
@@ -163,7 +139,7 @@ cp = ModelCheckpoint(filepath=os.path.join(BASE_PATH, f'{MODEL_TYPE}_model.h5'),
 history = model.fit(x_train, y_train,
                     epochs=EPOCHS,
                     batch_size=BATCH_SIZE,
-                    verbose=2,
+                    verbose=1,
                     validation_data=(x_val, y_val),
                     callbacks=[tb, es, cp])
 

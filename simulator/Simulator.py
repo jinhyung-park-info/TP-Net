@@ -36,10 +36,18 @@ polygonShape.draw = my_draw_polygon
 
 # ================= Execution Starts Here ===================
 
-for force in FORCE_LST:
-    print(f' =========== Starting Force {force} ============')
-    for angle in tqdm(ANGLE_LST):
-        for init_x_pos, init_y_pos in POS_LST:
+#for force in FORCE_LST:
+#    print(f' =========== Starting Force {force} ============')
+#    for angle in tqdm(ANGLE_LST):
+#        for init_x_pos, init_y_pos in POS_LST:
+for _ in range(1):
+    for _ in range(1):
+        for case in DNRI_TEST_CASES:
+
+            force = case[0]
+            angle = case[1]
+            init_x_pos = case[2]
+            init_y_pos = case[3]
 
             # Screen Setup
             screen = pygame.display.set_mode((SCREEN_WD, SCREEN_HT), 0, 32)

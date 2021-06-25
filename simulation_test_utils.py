@@ -238,8 +238,8 @@ def compare_baseline_ours_simulation(model_1, model_2, model_3, data_1_type, dat
     global_area_losses_2 = np.array([0.0] * COMPARE_LENGTH)
     global_area_losses_3 = np.array([0.0] * COMPARE_LENGTH)
 
-    chamfer_graph_save_path = create_directory(os.path.join(save_path, 'Loss Graph', 'Chamfer'))
-    area_loss_graph_save_path = create_directory(os.path.join(save_path, 'Loss Graph', 'Area Loss'))
+    chamfer_graph_save_path = create_directory(os.path.join(save_path, 'Error Graph', 'Position Error'))
+    area_loss_graph_save_path = create_directory(os.path.join(save_path, 'Error Graph', 'Shape Error'))
 
     for case_num, test_case in enumerate(cases):
 
@@ -322,7 +322,7 @@ def compare_baseline_ours_simulation(model_1, model_2, model_3, data_1_type, dat
         plt.plot(timesteps, losses_3, label=f'{data_3_type}')
 
         plt.xlabel('Timestep')
-        plt.ylabel('Loss')
+        plt.ylabel('Position Error')
         plt.legend()
         plt.savefig(os.path.join(chamfer_graph_save_path, 'Test Case {}.png'.format(case_num + 1)), dpi=600)
         plt.clf()
@@ -333,7 +333,7 @@ def compare_baseline_ours_simulation(model_1, model_2, model_3, data_1_type, dat
         plt.plot(timesteps, area_losses_3, label=f'{data_3_type}')
 
         plt.xlabel('Timestep')
-        plt.ylabel('Area Loss')
+        plt.ylabel('Shape Error')
         plt.legend()
         plt.savefig(os.path.join(area_loss_graph_save_path, 'Test Case {}.png'.format(case_num + 1)), dpi=600)
         plt.clf()
@@ -356,9 +356,9 @@ def compare_baseline_ours_simulation(model_1, model_2, model_3, data_1_type, dat
     plt.plot(timesteps[:COMPARE_LENGTH], global_losses_3.tolist(), label=f'{data_3_type}')
 
     plt.xlabel('Timestep')
-    plt.ylabel('Average Chamfer Distance')
+    plt.ylabel('Average Position Error')
     plt.legend()
-    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average Chamfer Distance.png'), dpi=600)
+    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average Position Error.png'), dpi=600)
     plt.clf()
 
     # Average Loss Graph - First 30 Frames
@@ -367,9 +367,9 @@ def compare_baseline_ours_simulation(model_1, model_2, model_3, data_1_type, dat
     plt.plot(timesteps[:30], global_losses_3.tolist()[:30], label=f'{data_3_type}')
 
     plt.xlabel('Timestep')
-    plt.ylabel('Average Chamfer Distance')
+    plt.ylabel('Average Position Error')
     plt.legend()
-    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average Chamfer Distance (First 30).png'), dpi=600)
+    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average Position Error (First 30).png'), dpi=600)
     plt.clf()
 
     # Average Area Loss Graph - First COMPARE_LENGTH Frames
@@ -382,9 +382,9 @@ def compare_baseline_ours_simulation(model_1, model_2, model_3, data_1_type, dat
     plt.plot(timesteps[:COMPARE_LENGTH], global_area_losses_3.tolist(), label=f'{data_3_type}')
 
     plt.xlabel('Timestep')
-    plt.ylabel('Average Area Loss')
+    plt.ylabel('Average Shape Error')
     plt.legend()
-    plt.savefig(os.path.join(area_loss_graph_save_path, '..', 'Average Area Loss.png'), dpi=600)
+    plt.savefig(os.path.join(area_loss_graph_save_path, '..', 'Average Shape Error.png'), dpi=600)
     plt.clf()
 
     # Average Area Loss Graph - First 30 Frames
@@ -393,7 +393,7 @@ def compare_baseline_ours_simulation(model_1, model_2, model_3, data_1_type, dat
     plt.plot(timesteps[:30], global_area_losses_3.tolist()[:30], label=f'{data_3_type}')
 
     plt.xlabel('Timestep')
-    plt.ylabel('Average Area Loss')
+    plt.ylabel('Average Shape Error')
     plt.legend()
-    plt.savefig(os.path.join(area_loss_graph_save_path, '..', 'Average Area Loss (First 30).png'), dpi=600)
+    plt.savefig(os.path.join(area_loss_graph_save_path, '..', 'Average Shape Error (First 30).png'), dpi=600)
     plt.clf()
