@@ -726,7 +726,7 @@ def compare_baseline_ours_real_in_rendered(real_model_1, real_model_2, real_mode
         plt.plot(timesteps, chamfer_losses_3, label=f'{data_type_3}')
 
         plt.xlabel('Timestep')
-        plt.ylabel('Chamfer Distance')
+        plt.ylabel('Position Error')
         plt.legend()
         plt.savefig(os.path.join(chamfer_graph_save_path, 'Test Case {}.png'.format(case)), dpi=600)
         plt.clf()
@@ -737,7 +737,7 @@ def compare_baseline_ours_real_in_rendered(real_model_1, real_model_2, real_mode
         plt.plot(timesteps, shape_losses_3, label=f'{data_type_3}')
 
         plt.xlabel('Timestep')
-        plt.ylabel('Shape Loss')
+        plt.ylabel('Shape Error')
         plt.legend()
         plt.savefig(os.path.join(shape_loss_graph_save_path, 'Test Case {}.png'.format(case)), dpi=600)
         plt.clf()
@@ -748,7 +748,7 @@ def compare_baseline_ours_real_in_rendered(real_model_1, real_model_2, real_mode
         plt.plot(timesteps, center_losses_3, label=f'{data_type_3}')
 
         plt.xlabel('Timestep')
-        plt.ylabel('Center Loss')
+        plt.ylabel('Center Error')
         plt.legend()
         plt.savefig(os.path.join(center_loss_graph_save_path, 'Test Case {}.png'.format(case)), dpi=600)
         plt.clf()
@@ -789,9 +789,9 @@ def compare_baseline_ours_real_in_rendered(real_model_1, real_model_2, real_mode
     plt.plot(timesteps[:COMPARE_LENGTH], global_chamfer_losses_3.tolist(), label=f'{data_type_3}')
 
     plt.xlabel('Timestep')
-    plt.ylabel('Average Chamfer Distance')
+    plt.ylabel('Position Error')
     plt.legend()
-    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average Chamfer Distance.png'), dpi=600)
+    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average Position Error.png'), dpi=600)
     plt.clf()
 
     # Average Loss Graph - First 30 Frames
@@ -800,9 +800,9 @@ def compare_baseline_ours_real_in_rendered(real_model_1, real_model_2, real_mode
     plt.plot(timesteps[:30], global_chamfer_losses_3.tolist()[:30], label=f'{data_type_3}')
 
     plt.xlabel('Timestep')
-    plt.ylabel('Average Chamfer Distance')
+    plt.ylabel('Average Position Error')
     plt.legend()
-    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average Chamfer Distance (First 30).png'), dpi=600)
+    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average Position Error (First 30).png'), dpi=600)
     plt.clf()
 
     # Average Shape Loss Graph - First COMPARE_LENGTH Frames
@@ -815,9 +815,9 @@ def compare_baseline_ours_real_in_rendered(real_model_1, real_model_2, real_mode
     plt.plot(timesteps[:COMPARE_LENGTH], global_shape_losses_3.tolist(), label=f'{data_type_3}')
 
     plt.xlabel('Timestep')
-    plt.ylabel('Average Shape Loss')
+    plt.ylabel('Shape Error')
     plt.legend()
-    plt.savefig(os.path.join(shape_loss_graph_save_path, '..', 'Average Shape Loss.png'), dpi=600)
+    plt.savefig(os.path.join(shape_loss_graph_save_path, '..', 'Average Shape Error.png'), dpi=600)
     plt.clf()
 
     # Average Shape Loss Graph - First 30 Frames
@@ -826,9 +826,9 @@ def compare_baseline_ours_real_in_rendered(real_model_1, real_model_2, real_mode
     plt.plot(timesteps[:30], global_shape_losses_3.tolist()[:30], label=f'{data_type_3}')
 
     plt.xlabel('Timestep')
-    plt.ylabel('Average Shape Loss')
+    plt.ylabel('Average Shape Error')
     plt.legend()
-    plt.savefig(os.path.join(shape_loss_graph_save_path, '..', 'Average Shape Loss (First 30).png'), dpi=600)
+    plt.savefig(os.path.join(shape_loss_graph_save_path, '..', 'Average Shape Error (First 30).png'), dpi=600)
     plt.clf()
 
     # Average Center Loss Graph - First COMPARE_LENGTH Frames
@@ -843,7 +843,7 @@ def compare_baseline_ours_real_in_rendered(real_model_1, real_model_2, real_mode
     plt.xlabel('Timestep')
     plt.ylabel('Average Center Loss')
     plt.legend()
-    plt.savefig(os.path.join(center_loss_graph_save_path, '..', 'Average Center Loss.png'), dpi=600)
+    plt.savefig(os.path.join(center_loss_graph_save_path, '..', 'Average Center Error.png'), dpi=600)
     plt.clf()
 
     # Average Center Loss Graph - First 30 Frames
@@ -854,5 +854,5 @@ def compare_baseline_ours_real_in_rendered(real_model_1, real_model_2, real_mode
     plt.xlabel('Timestep')
     plt.ylabel('Average Center Loss')
     plt.legend()
-    plt.savefig(os.path.join(center_loss_graph_save_path, '..', 'Average Center Loss (First 30).png'), dpi=600)
+    plt.savefig(os.path.join(center_loss_graph_save_path, '..', 'Average Center Error (First 30).png'), dpi=600)
     plt.clf()
