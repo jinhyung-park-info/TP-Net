@@ -28,13 +28,13 @@ def gen_args():
     parser.add_argument('--bn', required=False, default=0)
 
     parser.add_argument('--data_offset', required=False, default=4)
-    parser.add_argument('--data_type', required=False, default='ordered', choices=['ordered', 'unordered', 'sorted'])
+    parser.add_argument('--data_type', required=False, default='ordered', choices=['ordered', 'unordered'])
 
     parser.add_argument('--n_dims', required=False, default=2)
     parser.add_argument('--n_particles', required=False, default=30)
 
     parser.add_argument('--save_path', required=False, default='./result')
-    parser.add_argument('--data_path', required=False, default='./data/simulation')
+    parser.add_argument('--data_path', required=False, default='./data/simulation/preprocessed_data')
     parser.add_argument('--n_train_data', required=False, default=-1)
     parser.add_argument('--n_val_data', required=False, default=-1)
 

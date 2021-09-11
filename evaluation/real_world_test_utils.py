@@ -2,10 +2,8 @@ import numpy as np
 from common.Constants import *
 from common.Utils import load_json, sort_pointset_by_ascending_x, sort_pointset_by_descending_y, center_transform
 from tqdm import tqdm
-import re
 from random import sample
 from loss import get_cd_loss
-import cv2
 
 
 def preprocess_real_world_dnri_predictions(predictions):
@@ -108,42 +106,17 @@ def get_real_world_ground_truth_pointset(case):
     return pointsets
 
 
-def find_case_info(path):
-    directories = os.listdir(path)
-    invalid_names = ['output.mp4', 'output.MP4']
-    for dirname in invalid_names:
-        if dirname in directories:
-            directories.remove(dirname)
-    num_frames = len(directories)
-    directories = sorted(directories, key=lambda file: int(re.findall('\d+', file)[0]))
-
-    first_frame_number = directories[0][9:][:-4]
-    return int(first_frame_number), num_frames
-
-
-def get_final_video_size(video_number):
-    if video_number == 4:
-        return 1624, 948
-    if 42 <= video_number <= 47:
-        return 1470, 926
-    if video_number == 41:
-        return 1480, 926
-    src1 = cv2.imread(os.path.join(REAL_DATA_PATH, 'crop_positions', f'case_{video_number}_left.jpg'))
-    src2 = cv2.imread(os.path.join(REAL_DATA_PATH, 'crop_positions', f'case_{video_number}_down.jpg'))
-    return src1.shape[1], src2.shape[0]
-
-
-def convert_to_pixel_coordinates(predicted_pointset, distance, height):
+def convert_to_pixel_coordinates(predicted_pointset, height, crop_size):
     pixel_pointset = []
 
     for point in predicted_pointset:
-        x = int(CROP_SIZE * point[0])
-        y = int(CROP_SIZE * (1 - point[1]))
+        x = int(crop_size * point[0])
+        y = int(crop_size * (1 - point[1]))
         pixel_pointset.append([x, y])
 
     for i in range(NUM_PARTICLES):
         pixel_pointset[i][0] += 228
-        pixel_pointset[i][1] += height - CROP_SIZE
+        pixel_pointset[i][1] += height - crop_size
 
     return sort_clockwise(pixel_pointset)
 

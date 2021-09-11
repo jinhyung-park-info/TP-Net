@@ -1,17 +1,12 @@
 # Real-World-Softbody
 
-**By <a href="http://github.com/jinhyung426/" target="_blank">Jinhyung Park</a>, Dohae Lee from Yonsei University (Seoul, Republic of Korea)**
-
-<p align="center">
-  <img width="912" height="441" src="https://github.com/cgna-soft/Real-World-Softbody/blob/main/utils/teaser.jpg">
-</p>
-<br/>
+**By Paper ID : 2591**
 
 
 ### Introduction
-- This repository accompanies the paper "Paper Title TBD", submitted to "Journal Name TBD".<br/>
+- This repository accompanies the paper "Flexible Networks for Learning Physical Dynamics of Deformable Objects", submitted to main track of "AAAI 2022".<br/>
   We release the code and data to train, test, and visualize the result of our model.<br/>
-  The implementation is based on python 3.8 and tensorflow 2.3.0. <br/>
+  The implementation is based on python 3.6, tensorflow 2.3.0., CUDA 10.1, and cuDNN  <br/>
 
 ### How To Run
 **1. Configure Environment**
@@ -32,11 +27,3 @@
 
 
     python3 test_pred.py
-
-### Evaluation
-- Our model is compared with the following models that are capable of predicting future frames of real world softbodies.<br/>
-
-   -  <a href="https://github.com/cgraber/cvpr_dNRI" target="_blank">Dynamic Neural Relational Inference (CVPR, 2020)</a>   
-   -  <a href="https://github.com/seuqaj114/paig" target="_blank">Physics As Inverse Graphics (ICLR, 2020)</a>
-   -  <a href="https://github.com/mbchang/dynamics" target="_blank">Neural Physics Engine (ICLR, 2017)</a>
-   -  <a href="https://github.com/jinhyung426/Interaction-networks_tensorflow" target="_blank">Interaction Network (NIPS, 2016)</a>

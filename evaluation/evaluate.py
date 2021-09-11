@@ -2,16 +2,15 @@ import argparse
 from common.Constants import SIM_DATA_EVAL_CASES, REAL_DATA_EVAL_CASES
 from tqdm import tqdm
 import os
-from evaluation.simulation_test_utils import load_pred_model, get_simulation_input_pointset, get_error_for_sim_data
+from evaluation.simulation_test_utils import load_pred_model, get_simulation_input_pointset, get_error_for_sim_data, generate_rollout_error_graph
 from evaluation.real_world_test_utils import get_real_world_input_pointset, get_error_for_real_data
 import numpy as np
 
 
 if __name__ == '__main__':
-    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('--gpu', required=False, default=0)
     parser.add_argument('--model_type', required=False, default='tp_net')
     parser.add_argument('--seed', required=False, default=3)
     parser.add_argument('--num_input', required=False, default=3)
@@ -19,6 +18,9 @@ if __name__ == '__main__':
     parser.add_argument('--init_data_type', required=False, default='ordered', choices=['ordered', 'unordered', 'sorted_x', 'sorted_y'])
     parser.add_argument('--env', required=False, default='simulation', choices=['simulation', 'real'])
     args = parser.parse_args()
+
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    os.environ["CUDA_VISIBLE_DEVICES"] = f"{args.gpu}"
 
     result_base_path = os.path.join('..', 'result', args.model_type, f'{args.model_type}-{args.num_input}', f'seed_{args.seed}')
     prediction_model_path = os.path.join(result_base_path, f'{args.model_type}_best.h5')
@@ -70,6 +72,7 @@ if __name__ == '__main__':
             np.save(os.path.join(result_base_path, f'{args.model_type}-{args.num_input}-{error_type}-errors.npy'), np.array(errors))
             errors_average = np.mean(errors, axis=0)
             np.save(os.path.join(result_base_path, f'{args.model_type}-{args.num_input}-{error_type}-errors-average.npy'), errors_average)
+            generate_rollout_error_graph(args, result_base_path, errors_average)
 
     else:
         for error_type in ['Position', 'Shape']:
@@ -79,3 +82,4 @@ if __name__ == '__main__':
             np.save(os.path.join(result_base_path, f'{args.model_type}-{args.num_input}-{error_type}-real-{args.init_data_type}-errors.npy'), np.array(errors))
             errors_average = np.mean(errors, axis=0)
             np.save(os.path.join(result_base_path, f'{args.model_type}-{args.num_input}-{error_type}-real-{args.init_data_type}-errors-average.npy'), errors_average)
+            generate_rollout_error_graph(args, result_base_path, errors_average)
