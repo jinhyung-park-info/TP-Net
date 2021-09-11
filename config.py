@@ -10,7 +10,7 @@ def gen_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--num_input', required=False, default=4)
     parser.add_argument('--num_output', required=False, default=8)
-    parser.add_argument('--epoch', required=False, default=1)
+    parser.add_argument('--epoch', required=False, default=120)
     parser.add_argument('--batch_size', required=False, default=128)
     parser.add_argument('--lr', required=False, default=0.001)
 
@@ -27,7 +27,7 @@ def gen_args():
     parser.add_argument('--bn', required=False, default=0)
 
     parser.add_argument('--data_offset', required=False, default=4)
-    parser.add_argument('--data_type', required=False, default='ordered', choices=['ordered', 'unordered'])
+    parser.add_argument('--data_type', required=False, default='ordered')
 
     parser.add_argument('--n_dims', required=False, default=2)
     parser.add_argument('--n_particles', required=False, default=30)

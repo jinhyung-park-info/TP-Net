@@ -23,8 +23,10 @@ The entire process of generating the synthetic dataset takes a couple of hours a
 
 **2-1. Using small dataset**
 
-    # unzip synthetic_dataset.zip and place it under the root directory of this repo
-    mv ./synthetic_dataset ./data/synthetic_dataset
+    # unzip synthetic_dataset_1.zip, synthetic_dataset_2.zip and place it under the root directory of this repo
+
+    mv ./synthetic_dataset_1 ./data/synthetic_dataset
+    mv ./synthetic_dataset_2/y_train_pred_ordered.json ./data/synthetic_dataset/input_4/offset_4_num_pred_8/y_train_pred_ordered.json
 
 **2-2. Generating the entire Synthetic Dataset**
 
