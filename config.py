@@ -8,9 +8,9 @@ from common.Utils import create_directory
 
 def gen_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--seed', required=False, default=3)
     parser.add_argument('--num_input', required=False, default=4)
-    parser.add_argument('--epoch', required=False, default=100)
+    parser.add_argument('--num_output', required=False, default=8)
+    parser.add_argument('--epoch', required=False, default=120)
     parser.add_argument('--batch_size', required=False, default=128)
     parser.add_argument('--lr', required=False, default=0.001)
 
@@ -22,7 +22,6 @@ def gen_args():
     parser.add_argument('--epsilon', required=False, default=1e-07)
     parser.add_argument('--use_amsgrad', required=False, default=0)
 
-    parser.add_argument('--num_output', required=False, default=8)
     parser.add_argument('--use_transform_net', required=False, default=1)
     parser.add_argument('--n_global_features', required=False, default=128)
     parser.add_argument('--bn', required=False, default=0)
@@ -37,6 +36,7 @@ def gen_args():
     parser.add_argument('--data_path', required=False, default='./data/simulation/preprocessed_data')
     parser.add_argument('--n_train_data', required=False, default=-1)
     parser.add_argument('--n_val_data', required=False, default=-1)
+    parser.add_argument('--seed', required=False, default=3)
 
     args = parser.parse_args()
 

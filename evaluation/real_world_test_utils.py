@@ -82,7 +82,7 @@ def get_error_for_real_data(model_type, seed, num_input, test_length, error_type
 
 
 def get_real_world_input_pointset(case, num_input, init_data_type):
-    input_info, ptr = load_json(os.path.join(REAL_DATA_PATH, '05_postprocessed_data', f'case_{case}', 'normalized_sequence_of_point_sets.json'))
+    input_info, ptr = load_json(os.path.join(REAL_DATA_PATH, f'case_{case}', 'normalized_sequence_of_point_sets.json'))
     ptr.close()
     input_info = [input_info[REAL_DATA_OFFSET * i] for i in range(num_input)]
 
@@ -100,7 +100,7 @@ def get_real_world_input_pointset(case, num_input, init_data_type):
 
 
 def get_real_world_ground_truth_pointset(case):
-    path = os.path.join(REAL_DATA_PATH, '05_postprocessed_data', f'case_{case}', 'normalized_sequence_of_point_sets.json')
+    path = os.path.join(REAL_DATA_PATH, f'case_{case}', 'normalized_sequence_of_point_sets.json')
     pointsets, ptr = load_json(path)
     ptr.close()
     return pointsets

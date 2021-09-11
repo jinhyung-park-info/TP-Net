@@ -13,7 +13,7 @@ CROP_SIZE = 922
 
 # Due to file size limit, we only provide real-world image frames for only one real-world test case with low resolution
 # The constants below are specific constants hard-coded for the sample test case
-SAMPLE_TEST_CASE = 48
+SAMPLE_TEST_CASE = 24
 first_frame_number = 78
 distance, height = (1494, 940)
 

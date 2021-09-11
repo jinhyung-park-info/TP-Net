@@ -35,7 +35,7 @@ SOFTBODY_RESTITUTION = 0
 SOFTBODYBITS = 0x0002
 
 # 5. Data
-DATA_SAVE_MODE = False
+DATA_SAVE_MODE = True
 COLLISION_RANGE_BOUND = 0.2
 MIN_X, MIN_Y = WALL_WIDTH, WALL_WIDTH
 MAX_X, MAX_Y = SCREEN_LENGTH - WALL_WIDTH, SCREEN_HEIGHT - WALL_WIDTH
@@ -45,7 +45,7 @@ SAT_MIN = 1.1438
 NUM_SEQUENCE_PER_ANIMATION = 600
 NUM_PARTICLES = 30             # Must be an even number
 SIM_DATA_PATH = os.path.join('..', 'data', 'simulation', 'raw_data')
-REAL_DATA_PATH = os.path.join('..', 'data', 'real_world', 'raw_data')
+REAL_DATA_PATH = os.path.join('..', 'data', 'real_world', 'preprocessed_data')
 
 FORCE_LST = [1.0, 1.15, 1.3, 1.45, 1.6]
 ANGLE_LST = [180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235, 240, 245, 250, 255, 260, 265, 270]  # 180 < ANGLE < 270
