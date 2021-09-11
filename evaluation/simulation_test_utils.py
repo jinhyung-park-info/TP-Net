@@ -2,7 +2,6 @@ from tensorflow.keras.models import load_model
 import numpy as np
 from common.Constants import *
 from common.Utils import load_json, normalize_pointset, get_nested_pointset, normalize_nested_pointset, denormalize_dnri_pointset, sort_pointset_by_ascending_x, sort_pointset_by_descending_y, center_transform
-from tqdm import tqdm
 from loss import get_cd_loss
 from random import sample
 import matplotlib.pyplot as plt
@@ -53,22 +52,22 @@ def visualize_synthetic_pointset(point_set, frame_size, wall_size):
     return image_numpy.swapaxes(0, 1)
 
 
-def generate_rollout_error_graph(args, savepath, errors):
-    timestamps = [i for i in range(args.test_length)]
-    plt.plot(timestamps, errors.tolist(), label=f'TP-Net-{args.num_input}', color='blue')
+def generate_rollout_error_graph(args, savepath, errors, error_type, env):
+    timestamps = [i for i in range(80)]
+    plt.plot(timestamps, errors.tolist()[:80], label=f'TP-Net-{args.num_input}', color='blue')
     plt.xlabel('Timestep')
-    plt.ylabel(f'Average {args.error_type} Error')
+    plt.ylabel(f'Average {error_type} Error')
     plt.legend()
-    plt.savefig(os.path.join(savepath, f'Average {args.error_type} Error - {args.env_name}_data.png'), dpi=600)
+    plt.savefig(os.path.join(savepath, f'Average {error_type} Error - {env}_data.png'), dpi=600)
     plt.clf()
 
-    print(f'Error at 40th timestep      : {round(float(errors[39]), 3)}')
-    print(f'Error at 80th timestep      : {round(float(errors[79]), 3)}')
+    print(f'Average {error_type} Error at 40th timestep      : {round(float(errors[39]), 3)}')
+    print(f'Average {error_type} Error at 80th timestep      : {round(float(errors[79]), 3)}')
 
 
 def preprocess_dnri_predictions(predictions):
     predictions = predictions[:, :, :, :, :2]             # discard predicted velocity
-    for test_case in range(60):                           # for 60 simulation test cases
+    for test_case in range(60):                           # for 60 synthetic_dataset test cases
         for timestep in range(len(predictions[0][0])):    # change the metrics from -1~1 to 0~1
             predictions[test_case][0][timestep] = np.array(normalize_nested_pointset(denormalize_dnri_pointset(predictions[test_case][0][timestep])))
 
@@ -76,6 +75,7 @@ def preprocess_dnri_predictions(predictions):
 
 
 def get_error_for_sim_data(model_type, seed, num_input, test_length, error_type, data_type='ordered'):
+
     if model_type == 'static_nri':
         predictions = np.load(f'../result/nri/nri-{num_input}/seed_{seed}/softbody_predictions_static_{data_type}.npy')
         predictions = preprocess_dnri_predictions(predictions)
@@ -105,22 +105,22 @@ def get_error_for_sim_data(model_type, seed, num_input, test_length, error_type,
         dnri_offset = 0
 
     if error_type == 'Position':
-        for i, test_case in tqdm(list(enumerate(SIM_DATA_EVAL_CASES))):
+        for i, test_case in enumerate(SIM_DATA_EVAL_CASES):
             errors.append([])
             ground_truth_pointsets = get_ground_truth_pointset(test_case)
             normalized_ground_truth_pointset = [normalize_nested_pointset(pointset) for pointset in ground_truth_pointsets]
 
-            for timestep in range(test_length):
+            for timestep in range(test_length - num_input - 1):
                 ground_truth = np.array([normalized_ground_truth_pointset[(num_input + 1 + timestep) * SIM_DATA_OFFSET]], dtype='float32')
                 errors[i].append(get_cd_loss(ground_truth, np.array([predictions[i][dnri_offset + timestep]], dtype='float32')))
 
     else:  # error_type == 'Shape'
-        for i, test_case in tqdm(list(enumerate(SIM_DATA_EVAL_CASES))):
+        for i, test_case in enumerate(SIM_DATA_EVAL_CASES):
             errors.append([])
             ground_truth_pointsets = get_ground_truth_pointset(test_case)
             normalized_ground_truth_pointset = [normalize_nested_pointset(pointset) for pointset in ground_truth_pointsets]
 
-            for timestep in range(test_length):
+            for timestep in range(test_length - num_input - 1):
                 ground_truth = np.array([normalized_ground_truth_pointset[(num_input + 1 + timestep) * SIM_DATA_OFFSET]], dtype='float32')
                 transformed_ground_truth = center_transform(ground_truth)
                 transformed_prediction = center_transform(np.array([predictions[i][dnri_offset + timestep]], dtype='float32'))

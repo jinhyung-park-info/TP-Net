@@ -42,8 +42,8 @@ if __name__ == '__main__':
     print(f'Train Loss: {str(train_evaluation)}')
     print(f'Validation Loss: {str(val_evaluation)}')
 
-    with open(os.path.join(args.save_path, 'train_log.txt'), 'a') as f:
-        f.write('\n\n------------- Evaluation ------------\n')
+    with open(os.path.join(args.save_path, 'train_log.txt'), 'w') as f:
+        f.write('------------- Evaluation ------------\n')
         f.write(f'Train Loss: {str(train_evaluation)}\n')
         f.write(f'Validation Loss: {str(val_evaluation)}\n')
 

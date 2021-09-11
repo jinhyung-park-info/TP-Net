@@ -1,6 +1,6 @@
 # User Defined
 /result
 /venv
-/data/real_world
-/data/simulation/raw_data
-/data/simulation/preprocessed_data
+/data/real_world_dataset
+/data/synthetic_dataset/raw_data
+/data/synthetic_dataset/preprocessed_data

@@ -28,7 +28,7 @@ def preprocess_real_world_dnri_predictions(predictions):
     return np.array(denormalized_prediction)
 
 
-def get_error_for_real_data(model_type, seed, num_input, test_length, error_type, data_type):
+def get_error_for_real_data(model_type, seed, num_input, error_type, data_type):
 
     if model_type == 'static_nri':
         predictions = np.load(f'../result/nri/nri-{num_input}/seed_{seed}/real_softbody_predictions_static_{data_type}.npy')
@@ -51,7 +51,7 @@ def get_error_for_real_data(model_type, seed, num_input, test_length, error_type
         predictions = predictions[:, :, :, :2]
 
     else:
-        predictions = np.load(f'../result/{model_type}/{model_type}-{num_input}/seed_{seed}/real_softbody_predictions.npy')
+        predictions = np.load(f'../result/{model_type}/{model_type}-{num_input}/seed_{seed}/real_softbody_predictions_{data_type}.npy')
 
     errors = []
     dnri_offset = 1
@@ -59,20 +59,20 @@ def get_error_for_real_data(model_type, seed, num_input, test_length, error_type
         dnri_offset = 0
 
     if error_type == 'Position':
-        for test_case in tqdm(REAL_DATA_EVAL_CASES):
+        for test_case in REAL_DATA_EVAL_CASES:
             errors.append([])
             normalized_ground_truth_pointset = get_real_world_ground_truth_pointset(test_case)
 
-            for timestep in range(test_length):
+            for timestep in range(80):
                 ground_truth = np.array([normalized_ground_truth_pointset[(num_input + 1 + timestep) * REAL_DATA_OFFSET]], dtype='float32')
                 errors[test_case].append(get_cd_loss(ground_truth, np.array([predictions[test_case][dnri_offset + timestep]], dtype='float32')))
 
     else:
-        for test_case in tqdm(REAL_DATA_EVAL_CASES):
+        for test_case in REAL_DATA_EVAL_CASES:
             errors.append([])
             normalized_ground_truth_pointset = get_real_world_ground_truth_pointset(test_case)
 
-            for timestep in range(test_length):
+            for timestep in range(80):
                 ground_truth = np.array([normalized_ground_truth_pointset[(num_input + 1 + timestep) * REAL_DATA_OFFSET]], dtype='float32')
                 transformed_ground_truth = center_transform(ground_truth)
                 transformed_prediction = center_transform(np.array([predictions[test_case][dnri_offset + timestep]], dtype='float32'))

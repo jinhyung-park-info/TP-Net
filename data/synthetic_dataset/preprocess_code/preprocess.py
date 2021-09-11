@@ -1,4 +1,4 @@
-from data.simulation.preprocess_code.preprocess_utils import *
+from data.synthetic_dataset.preprocess_code.preprocess_utils import *
 
 if __name__ == '__main__':
 

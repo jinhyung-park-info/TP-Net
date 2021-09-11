@@ -44,8 +44,8 @@ SAT_MIN = 1.1438
 
 NUM_SEQUENCE_PER_ANIMATION = 600
 NUM_PARTICLES = 30             # Must be an even number
-SIM_DATA_PATH = os.path.join('..', 'data', 'simulation', 'raw_data')
-REAL_DATA_PATH = os.path.join('..', 'data', 'real_world', 'preprocessed_data')
+SIM_DATA_PATH = os.path.join('..', 'data', 'synthetic_dataset', 'raw_data')
+REAL_DATA_PATH = os.path.join('..', 'data', 'real_world_dataset', 'preprocessed_data')
 
 FORCE_LST = [1.0, 1.15, 1.3, 1.45, 1.6]
 ANGLE_LST = [180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235, 240, 245, 250, 255, 260, 265, 270]  # 180 < ANGLE < 270

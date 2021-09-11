@@ -22,9 +22,9 @@ CODEC = cv2.VideoWriter_fourcc(*'MPV4')
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--num_input', required=False, default=3)
+    parser.add_argument('--num_input', required=False, default=4)
     parser.add_argument('--seed', required=False, default=3)
-    parser.add_argument('--init_data_type', required=False, default='ordered')
+    parser.add_argument('--init_data_type', required=False, default='unordered', choices=['unordered', 'sorted_x', 'sorted_y'])
     args = parser.parse_args()
 
     result_path = os.path.join('..', 'result', 'tp_net', f'tp_net-{args.num_input}', f'seed_{args.seed}')
@@ -36,7 +36,7 @@ if __name__ == '__main__':
     output_video = cv2.VideoWriter(os.path.join(savepath, f'Test Case_{SAMPLE_TEST_CASE}.MP4'), CODEC, 30, VIDEO_SIZE)
     background_image = cv2.imread(os.path.join(REAL_DATA_PATH, f'case_{SAMPLE_TEST_CASE}', 'original_frames', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
     ground_truth_pointsets = get_real_world_ground_truth_pointset(SAMPLE_TEST_CASE)
-    test_length = int(len(ground_truth_pointsets) / args.offset) - args.num_input - 1
+    video_length = int(len(ground_truth_pointsets) / REAL_DATA_OFFSET) - args.num_input - 1
 
     timestep = 0
     iteration = 0
@@ -54,7 +54,7 @@ if __name__ == '__main__':
         iteration += 1
 
     iteration = 0
-    while iteration < test_length:
+    while iteration < video_length:
         ours_pointset = predicted_pointsets[SAMPLE_TEST_CASE][1 + iteration]
         ours_pixel_coordinates = convert_to_pixel_coordinates(ours_pointset, height, CROP_SIZE)
         for i in range(NUM_PARTICLES):

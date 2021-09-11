@@ -3,14 +3,14 @@ import os
 
 
 def get_data(args):
-    x_train = np.load(os.path.join(args.data_path, f'x_train_pred_{args.data_type}.npy'))
+    x_train = np.load(os.path.join(args.data_path, f'x_train_pred_{args.data_type}.npy'))[:1000]
     y_train = np.load(os.path.join(args.data_path, f'y_train_pred_{args.data_type}.npy'))
 
-    x_val = np.load(os.path.join(args.data_path, f'x_val_pred_{args.data_type}.npy'))
+    x_val = np.load(os.path.join(args.data_path, f'x_val_pred_{args.data_type}.npy'))[:100]
     y_val = np.load(os.path.join(args.data_path, f'y_val_pred_{args.data_type}.npy'))
 
-    y_train = [y_train[i] for i in range(args.num_output)]
-    y_val = [y_val[i] for i in range(args.num_output)]
+    y_train = [y_train[i][:1000] for i in range(args.num_output)]
+    y_val = [y_val[i][:100] for i in range(args.num_output)]
 
     args.n_train_data = int(x_train.shape[0])
     args.n_val_data = int(x_val.shape[0])

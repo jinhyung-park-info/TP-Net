@@ -17,10 +17,10 @@ CODEC = cv2.VideoWriter_fourcc(*'MPV4')
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--num_input', required=False, default=3)
+    parser.add_argument('--num_input', required=False, default=4)
     parser.add_argument('--seed', required=False, default=3)
     parser.add_argument('--init_data_type', required=False, default='ordered')
-    parser.add_argument('--video_length', required=False, default=160)
+    parser.add_argument('--video_length', required=False, default=150)
     parser.add_argument('--test_animations', required=False, default=60)
     args = parser.parse_args()
 
@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
     predicted_pointsets = np.load(os.path.join(result_path, f'softbody_predictions_{args.init_data_type}.npy'))
 
-    for test_case_num, test_case in tqdm(list(enumerate(test_cases))):
+    for test_case_num, test_case in enumerate(test_cases):
 
         print(f'=========== Visualizing Test Case #{test_case_num} =============')
 
@@ -51,7 +51,7 @@ if __name__ == '__main__':
             iteration += 1
 
         iteration = 0
-        while iteration < args.test_length:
+        while iteration < args.video_length:
             merged = Image.new(mode="L", size=(VIDEO_HEIGHT * 2, VIDEO_HEIGHT), color=255)
             merged.paste(im=Image.fromarray(visualize_synthetic_pointset(ground_truth_pointsets[timestep], FRAME_SIZE, WALL_SIZE)), box=(WALL_SIZE, WALL_SIZE))
             merged.paste(im=Image.fromarray(visualize_synthetic_pointset(denormalize_pointset(predicted_pointsets[test_case_num][1 + iteration]), FRAME_SIZE, WALL_SIZE)), box=(VIDEO_HEIGHT + WALL_SIZE, WALL_SIZE))
