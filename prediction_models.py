@@ -8,19 +8,9 @@ def model_builder(args):
     basic_model = build_timewise_pointnet(args)
     model = build_recursive_prediction_model(args, basic_model)
 
-    if args.loss_fn == 'cd':
-        first_loss = get_cd_loss_func_for_first
-        base_loss = get_cd_loss_func
-    elif args.loss_fn == 'advanced_cd':
-        first_loss = get_advanced_cd_loss_func_for_first
-        base_loss = get_advanced_cd_loss_func
-    else:
-        first_loss = mse_for_first
-        base_loss = mse_base
-
-    loss = {f'tf_op_layer_output0': first_loss}
+    loss = {f'tf_op_layer_output0': get_weighted_cd_loss}
     for i in range(1, args.num_output):
-        loss[f'tf_op_layer_output{i}'] = base_loss
+        loss[f'tf_op_layer_output{i}'] = get_cd_loss
 
     model.compile(loss=loss,
                   optimizer=tf.keras.optimizers.Adam(learning_rate=args.lr,
@@ -200,11 +190,7 @@ def build_shared_feature_extractor(args):
     if args.bn:
         net = BatchNormalization()(net)
 
-    if args.pool_type == 'max':
-        net = MaxPooling2D(pool_size=(args.n_particles, 1), padding='valid')(net)
-    else:
-        net = AveragePooling2D(pool_size=(args.n_particles, 1), padding='valid')(net)
-
+    net = MaxPooling2D(pool_size=(args.n_particles, 1), padding='valid')(net)
     net = Flatten()(net)
     output = Dense(args.n_global_features, activation=tf.nn.relu)(net)
 
@@ -230,21 +216,21 @@ def build_timewise_pointnet(args):
     for i in range(2, args.num_input):
         features_per_timestep = tf.concat((features_per_timestep, nth_features[i]), axis=1)
 
-    net = LSTM(units=512,
-               activation=tf.nn.relu,
-               return_sequences=True)(features_per_timestep)
+    net = Bidirectional(LSTM(units=512,
+                        activation=tf.nn.relu,
+                        return_sequences=True))(features_per_timestep)
 
     net = LayerNormalization()(net)
 
-    net = LSTM(units=256,
-               activation=tf.nn.relu,
-               return_sequences=True)(net)
+    net = Bidirectional(LSTM(units=256,
+                        activation=tf.nn.relu,
+                        return_sequences=True))(net)
 
     net = LayerNormalization()(net)
 
-    net = LSTM(units=256,
-               activation=tf.nn.relu,
-               return_sequences=False)(net)
+    net = Bidirectional(LSTM(units=256,
+                        activation=tf.nn.relu,
+                        return_sequences=False))(net)
 
     net = LayerNormalization()(net)
 

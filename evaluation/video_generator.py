@@ -15,6 +15,15 @@ FRAME_SIZE = 860
 CROP_SIZE = 922
 WALL_SIZE = int((VIDEO_HEIGHT - FRAME_SIZE) / 2)
 
+# 6. Model Related
+VIDEO_WIDTH = 1800
+VIDEO_HEIGHT = 900
+SMALL_HEIGHT = 450
+FRAME_SIZE = 860
+SMALL_SIZE = 430
+WALL_SIZE = int((VIDEO_HEIGHT - FRAME_SIZE) / 2)
+CODEC = cv2.VideoWriter_fourcc(*'MPV4')
+
 
 if __name__ == '__main__':
 

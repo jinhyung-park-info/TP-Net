@@ -2,21 +2,6 @@ import numpy as np
 import json
 from common.Constants import *
 import random
-from simulator.WallFactory import *
-
-
-# Simulation Related
-class ContactListener(b2ContactListener):
-
-    def __init__(self, world):
-        b2ContactListener.__init__(self)
-        self.world = world
-
-    def BeginContact(self, contact):
-        print("BeginContact")
-
-    def EndContact(self, contact):
-        print("EndContact")
 
 
 def create_directory(directory):
@@ -90,12 +75,10 @@ def normalize_nested_pointset(pointset):
         elif normalized_y > 1.0:
             normalized_y = 1.0
 
-
         normalized.append([normalized_x, normalized_y])
 
     assert len(normalized) == NUM_PARTICLES
     return normalized
-
 
 
 def denormalize_pointset(pointset):
@@ -104,8 +87,17 @@ def denormalize_pointset(pointset):
     for j in range(NUM_PARTICLES):
         denormalized_x = pointset[j][0] * (SAT_MAX - SAT_MIN) + SAT_MIN
         denormalized_y = pointset[j][1] * (SAT_MAX - SAT_MIN) + SAT_MIN
-        assert SAT_MIN <= denormalized_x <= SAT_MAX
-        assert SAT_MIN <= denormalized_y <= SAT_MAX
+
+        if SAT_MIN > denormalized_x:
+            denormalized_x = SAT_MIN
+        elif SAT_MAX < denormalized_x:
+            denormalized_x = SAT_MAX
+
+        if SAT_MIN > denormalized_y:
+            denormalized_y = SAT_MIN
+        elif SAT_MAX < denormalized_x:
+            denormalized_y = SAT_MAX
+
         denormalized.append([denormalized_x, denormalized_y])
 
     assert len(denormalized) == NUM_PARTICLES
@@ -118,21 +110,32 @@ def denormalize_dnri_pointset(pointset):
     for j in range(NUM_PARTICLES):
         denormalized_x = (pointset[j][0] + 1) * (SAT_MAX - SAT_MIN) / 2 + SAT_MIN
         denormalized_y = (pointset[j][1] + 1) * (SAT_MAX - SAT_MIN) / 2 + SAT_MIN
-        #assert SAT_MIN <= denormalized_x <= SAT_MAX
-        #assert SAT_MIN <= denormalized_y <= SAT_MAX
         denormalized.append([denormalized_x, denormalized_y])
 
     assert len(denormalized) == NUM_PARTICLES
     return denormalized
 
 
-
 def shuffle_pointset(pointset):
     return random.sample(pointset, len(pointset))
 
 
-def sort_pointset(pointset):
+def sort_pointset_by_descending_y(pointset):
     return sorted(pointset, key=lambda coord: (-coord[1], coord[0]))
+
+
+def sort_pointset_by_ascending_x(pointset):
+    return sorted(pointset, key=lambda coord: (coord[0], -coord[1]))
+
+
+def center_transform(pointset):
+    sum_info = np.sum(pointset[0], axis=0)
+    center_x = sum_info[0] / NUM_PARTICLES
+    center_y = sum_info[1] / NUM_PARTICLES
+    for i in range(NUM_PARTICLES):
+        pointset[0][i][0] -= center_x
+        pointset[0][i][1] -= center_y
+    return pointset
 
 
 def is_within_collision_range(pointset):
@@ -144,111 +147,3 @@ def is_within_collision_range(pointset):
         return True
     else:
         return False
-
-
-def write_model_info(path,
-                     model,
-                     loss_function,
-                     shape_weight,
-                     model_type,
-                     use_transform,
-                     data_type,
-                     offset,
-                     train_input,
-                     train_output,
-                     val_input,
-                     val_output,
-                     batch_size,
-                     patience):
-
-    file = open(os.path.join(path, 'README.txt'), 'w')
-
-    file.write('=============== Model Info =============\n\n')
-
-    file.write(f'Model Type                : {model_type}\n')
-    file.write(f'Uses Transform Net        : {use_transform}\n')
-    file.write(f'Loss Type                 : {loss_function}\n')
-    file.write(f'Shape Loss Weight         : {shape_weight}\n')
-    file.write(f'Data Type                 : {data_type}\n')
-    file.write(f'Data Offset               : {offset}\n')
-    file.write(f'Train Data Input Shape    : {train_input}\n')
-    file.write(f'Train Data Output Shape   : {train_output}\n')
-    file.write(f'Val Data Input Shape      : {val_input}\n')
-    file.write(f'Val Data Output Shape     : {val_output}\n')
-    file.write(f'Batch Size                : {batch_size}\n')
-    file.write(f'Patience                  : {patience}\n')
-    file.write(f'Random Seed               : {RANDOM_SEED}\n\n\n')
-
-    file.write('=============== Single Frame Prediction Model Summary =============\n\n')
-    if model is not None:
-        model.get_layer('functional_3').summary(print_fn=lambda x: file.write(x + '\n\n\n'))
-    file.close()
-
-
-def write_real_model_info(path,
-                          model,
-                          simulation_base_model_ver,
-                          retrain_scope,
-                          model_type,
-                          data_type,
-                          loss_type,
-                          shape_weight,
-                          offset,
-                          train_input,
-                          train_output,
-                          val_input,
-                          val_output,
-                          batch_size,
-                          patience,
-                          lr):
-
-    file = open(os.path.join(path, 'README.txt'), 'w')
-
-    file.write('=============== Model Info =============\n\n')
-
-    file.write(f'Simulation Model Ver      : {simulation_base_model_ver}\n')
-    file.write(f'Retrain Scope             : {retrain_scope}\n')
-    file.write(f'Model Type                : {model_type}\n')
-    file.write(f'Input Data Type           : {data_type}\n')
-    file.write(f'Loss Type                 : {loss_type}\n')
-    file.write(f'Shape Weight              : {shape_weight}\n')
-    file.write(f'Data Offset               : {offset}\n')
-    file.write(f'Train Data Input Shape    : {train_input}\n')
-    file.write(f'Train Data Output Shape   : {train_output}\n')
-    file.write(f'Val Data Input Shape      : {val_input}\n')
-    file.write(f'Val Data Output Shape     : {val_output}\n')
-    file.write(f'Batch Size                : {batch_size}\n')
-    file.write(f'Patience                  : {patience}\n')
-    file.write(f'Learning Rate             : {lr}\n')
-    file.write(f'Random Seed               : {RANDOM_SEED}\n\n\n')
-
-    file.write('=============== Model Summary =============\n\n')
-    model.summary(print_fn=lambda x: file.write(x + '\n\n\n'))
-    file.close()
-
-
-def write_autoencoder_info(path,
-                           model,
-                           model_type,
-                           pointset_data_type,
-                           loss_function,
-                           batch_size,
-                           patience,
-                           lr,
-                           activation):
-
-    file = open(os.path.join(path, 'README.txt'), 'w')
-
-    file.write('=============== Model Info =============\n\n')
-
-    file.write(f'Model Type                : {model_type}\n')
-    file.write(f'PointSet Data Type        : {pointset_data_type}\n')
-    file.write(f'Loss Type                 : {loss_function}\n')
-    file.write(f'Batch Size                : {batch_size}\n')
-    file.write(f'Patience                  : {patience}\n')
-    file.write(f'Learning Rate             : {lr}\n')
-    file.write(f'Activation                : {activation}\n\n\n')
-
-    file.write('=============== Model Summary =============\n\n')
-    model.summary(print_fn=lambda x: file.write(x + '\n\n\n'))
-    file.close()
