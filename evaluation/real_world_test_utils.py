@@ -10,7 +10,7 @@ import re
 #import pygame
 #from pygame.locals import *
 from random import sample
-from loss import get_cd_loss_func, real_chamfer_distance
+from loss import get_cd_loss_func
 import matplotlib.pyplot as plt
 
 VIDEO_WIDTH = 1800
@@ -22,6 +22,108 @@ WALL_SIZE = int((VIDEO_HEIGHT - FRAME_SIZE) / 2)
 
 def update_input_pointset(old_input, predicted_pointset):
     return np.expand_dims(np.concatenate([old_input[0][1:], predicted_pointset], axis=0), axis=0) # shape == (1, NUM_INPUT_FRAMES, 20, 2)
+
+def center_transform(pointset):
+    sum_info = np.sum(pointset[0], axis=0)
+    center_x = sum_info[0] / NUM_PARTICLES
+    center_y = sum_info[1] / NUM_PARTICLES
+    for i in range(NUM_PARTICLES):
+        pointset[0][i][0] -= center_x
+        pointset[0][i][1] -= center_y
+    return pointset
+
+
+def preprocess_real_world_dnri_predictions(predictions):
+    predictions = predictions[:, :, :, :, :2]  # discard velocity
+    for test_case in range(40):
+        for timestep in range(len(predictions[0][0])):
+            predictions[test_case][0][timestep] = np.array(predictions[test_case][0][timestep])
+
+    predictions = predictions.reshape(40, -1, 30, 2)
+    length = int(predictions.shape[1])
+    denormalized_prediction = []
+
+    for i in range(40):
+        denormalized_prediction.append([])
+        for j in range(length):
+            denormalized_prediction[i].append([])
+            for k in range(NUM_PARTICLES):
+                denormalized_x = (predictions[i][j][k][0] + 1) / 2
+                denormalized_y = (predictions[i][j][k][1] + 1) / 2
+                denormalized_prediction[i][j].append([denormalized_x, denormalized_y])
+
+    return np.array(denormalized_prediction)
+
+
+def get_real_error(model_type, seed, num_input, test_length, error_type, data_type, offset, start_timestep, num_samples):
+
+    if model_type == 'static_nri':
+        if start_timestep == 0:
+            predictions = np.load(f'../result/nri/nri-{num_input}/seed_{seed}/real_softbody_predictions_static_{data_type}.npy')
+        else:
+            predictions = np.load(f'../result/nri/nri-{num_input}/seed_{seed}/real_softbody_predictions_static_{start_timestep}_{data_type}.npy')
+        predictions = preprocess_real_world_dnri_predictions(predictions)
+
+    elif model_type == 'dynamic_nri':
+        if start_timestep == 0:
+            predictions = np.load(f'../result/nri/nri-{num_input}/seed_{seed}/real_softbody_predictions_dynamic_{data_type}.npy')
+        else:
+            predictions = np.load(f'../result/nri/nri-{num_input}/seed_{seed}/real_softbody_predictions_dynamic_{start_timestep}_{data_type}.npy')
+        predictions = preprocess_real_world_dnri_predictions(predictions)
+
+    elif model_type == 'dnri':
+        if start_timestep == 0:
+            predictions = np.load(f'../result/{model_type}/{model_type}-{num_input}/seed_{seed}/real_softbody_predictions_{data_type}.npy')
+        else:
+            predictions = np.load(f'../result/{model_type}/{model_type}-{num_input}/seed_{seed}/real_softbody_predictions_{start_timestep}_{data_type}.npy')
+        predictions = preprocess_real_world_dnri_predictions(predictions)
+
+    elif model_type == 'dpi' or model_type == 'dpi_recursive':
+        if start_timestep == 0:
+            predictions = np.load(f'../result/{model_type}/{model_type}-{num_input}/seed_{seed}/real_softbody_predictions_{data_type}.npy')
+        else:
+            predictions = np.load(f'../result/{model_type}/{model_type}-{num_input}/seed_{seed}/real_softbody_predictions_{start_timestep}_{data_type}.npy')
+        predictions = predictions[:, :, :, :2].tolist()
+
+    elif model_type == 'graphrnn':
+        if start_timestep == 0:
+            predictions = np.load(f'../result/{model_type}/{model_type}-{num_input}/seed_{seed}/real_softbody_predictions-num_samples_{num_samples}_{data_type}.npy')
+        else:
+            predictions = np.load(f'../result/{model_type}/{model_type}-{num_input}/seed_{seed}/real_softbody_predictions_{start_timestep}-num_samples_{num_samples}_{data_type}.npy')
+        predictions = predictions[:, :, :, :2]
+
+    else:
+        if start_timestep == 0:
+            predictions = np.load(f'../result/{model_type}/{model_type}-{num_input}/seed_{seed}/real_softbody_predictions.npy')
+        else:
+            predictions = np.load(f'../result/{model_type}/{model_type}-{num_input}/seed_{seed}/real_softbody_predictions_{start_timestep}.npy')
+
+    errors = []
+    dnri_correction = 1
+    if model_type == 'dnri':
+        dnri_correction = 0
+
+    if error_type == 'Position':
+        for i, test_case in tqdm(list(enumerate(REAL_WORLD_EVAL_CASES))):
+            errors.append([])
+            normalized_ground_truth_pointset = get_real_world_ground_truth_pointset(test_case, test_data_type='ordered')
+
+            for timestep in range(test_length):
+                ground_truth = np.array([normalized_ground_truth_pointset[(num_input + start_timestep + 1 + timestep) * offset]], dtype='float32')
+                errors[i].append(get_cd_loss_func(ground_truth, np.array([predictions[i][dnri_correction + timestep]], dtype='float32')))
+
+    else:
+        for i, test_case in tqdm(list(enumerate(REAL_WORLD_EVAL_CASES))):
+            errors.append([])
+            normalized_ground_truth_pointset = get_real_world_ground_truth_pointset(test_case, test_data_type='ordered')
+
+            for timestep in range(test_length):
+                ground_truth = np.array([normalized_ground_truth_pointset[(num_input + start_timestep + 1 + timestep) * offset]], dtype='float32')
+                transformed_ground_truth = center_transform(ground_truth)
+                transformed_prediction = center_transform(np.array([predictions[i][dnri_correction + timestep]], dtype='float32'))
+                errors[i].append(get_cd_loss_func(transformed_ground_truth, transformed_prediction))
+
+    return errors
 
 """
 def draw_box2d_image(point_set):
@@ -664,9 +766,9 @@ def compare_baseline_ours_real_in_rendered(real_model_1, real_model_2, real_mode
             model_3_center_x_coordinates.append(center_coordinates_3[2])
             model_3_center_y_coordinates.append(center_coordinates_3[3])
 
-            chamfer_loss_1 = real_chamfer_distance(np.array([ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_1)
-            chamfer_loss_2 = real_chamfer_distance(np.array([ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_2)
-            chamfer_loss_3 = real_chamfer_distance(np.array([ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_3)
+            chamfer_loss_1 = get_cd_loss_func(np.array([ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_1)
+            chamfer_loss_2 = get_cd_loss_func(np.array([ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_2)
+            chamfer_loss_3 = get_cd_loss_func(np.array([ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_3)
 
             timesteps.append(timestep)
 
@@ -791,7 +893,7 @@ def compare_baseline_ours_real_in_rendered(real_model_1, real_model_2, real_mode
     plt.xlabel('Timestep')
     plt.ylabel('Position Error')
     plt.legend()
-    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average Position Error.png'), dpi=600)
+    plt.savefig(os.path.join(chamfer_graph_save_path, '../..', 'Average Position Error.png'), dpi=600)
     plt.clf()
 
     # Average Loss Graph - First 30 Frames
@@ -802,7 +904,7 @@ def compare_baseline_ours_real_in_rendered(real_model_1, real_model_2, real_mode
     plt.xlabel('Timestep')
     plt.ylabel('Average Position Error')
     plt.legend()
-    plt.savefig(os.path.join(chamfer_graph_save_path, '..', 'Average Position Error (First 30).png'), dpi=600)
+    plt.savefig(os.path.join(chamfer_graph_save_path, '../..', 'Average Position Error (First 30).png'), dpi=600)
     plt.clf()
 
     # Average Shape Loss Graph - First COMPARE_LENGTH Frames
@@ -817,7 +919,7 @@ def compare_baseline_ours_real_in_rendered(real_model_1, real_model_2, real_mode
     plt.xlabel('Timestep')
     plt.ylabel('Shape Error')
     plt.legend()
-    plt.savefig(os.path.join(shape_loss_graph_save_path, '..', 'Average Shape Error.png'), dpi=600)
+    plt.savefig(os.path.join(shape_loss_graph_save_path, '../..', 'Average Shape Error.png'), dpi=600)
     plt.clf()
 
     # Average Shape Loss Graph - First 30 Frames
@@ -828,7 +930,7 @@ def compare_baseline_ours_real_in_rendered(real_model_1, real_model_2, real_mode
     plt.xlabel('Timestep')
     plt.ylabel('Average Shape Error')
     plt.legend()
-    plt.savefig(os.path.join(shape_loss_graph_save_path, '..', 'Average Shape Error (First 30).png'), dpi=600)
+    plt.savefig(os.path.join(shape_loss_graph_save_path, '../..', 'Average Shape Error (First 30).png'), dpi=600)
     plt.clf()
 
     # Average Center Loss Graph - First COMPARE_LENGTH Frames
@@ -843,7 +945,7 @@ def compare_baseline_ours_real_in_rendered(real_model_1, real_model_2, real_mode
     plt.xlabel('Timestep')
     plt.ylabel('Average Center Loss')
     plt.legend()
-    plt.savefig(os.path.join(center_loss_graph_save_path, '..', 'Average Center Error.png'), dpi=600)
+    plt.savefig(os.path.join(center_loss_graph_save_path, '../..', 'Average Center Error.png'), dpi=600)
     plt.clf()
 
     # Average Center Loss Graph - First 30 Frames
@@ -854,5 +956,281 @@ def compare_baseline_ours_real_in_rendered(real_model_1, real_model_2, real_mode
     plt.xlabel('Timestep')
     plt.ylabel('Average Center Loss')
     plt.legend()
-    plt.savefig(os.path.join(center_loss_graph_save_path, '..', 'Average Center Error (First 30).png'), dpi=600)
+    plt.savefig(os.path.join(center_loss_graph_save_path, '../..', 'Average Center Error (First 30).png'), dpi=600)
+    plt.clf()
+
+
+def compare_baseline_ours_real_in_rendered_kcgs(real_model_1, real_model_3, num_input_frames, save_path, offset, fps, data_type_1, data_type_3, output_video):
+
+    global_chamfer_losses_1 = np.array([0.0] * COMPARE_LENGTH)
+    global_chamfer_losses_3 = np.array([0.0] * COMPARE_LENGTH)
+
+    global_shape_losses_1 = np.array([0.0] * COMPARE_LENGTH)
+    global_shape_losses_3 = np.array([0.0] * COMPARE_LENGTH)
+
+    global_center_losses_1 = np.array([0.0] * COMPARE_LENGTH)
+    global_center_losses_3 = np.array([0.0] * COMPARE_LENGTH)
+
+    chamfer_graph_save_path = create_directory(os.path.join(save_path, 'Analysis', 'Chamfer'))
+    shape_loss_graph_save_path = create_directory(os.path.join(save_path, 'Analysis', 'Shape Loss'))
+    center_loss_graph_save_path = create_directory(os.path.join(save_path, 'Analysis', 'Center Loss'))
+    center_trajectory_save_path = create_directory(os.path.join(save_path, 'Analysis', 'Center Trajectory'))
+
+    cases = REAL_WORLD_VAL_CASES + REAL_WORLD_TEST_CASES
+    if not output_video:
+        cases.remove(43)
+
+    for case in cases:
+
+        print(f'=========== Testing Case #{case} =============')
+
+        timesteps = []
+        chamfer_losses_1 = []
+        chamfer_losses_3 = []
+
+        center_losses_1 = []
+        center_losses_3 = []
+
+        ground_truth_center_x_coordinates = []
+        ground_truth_center_y_coordinates = []
+
+        model_1_center_x_coordinates = []
+        model_1_center_y_coordinates = []
+
+        model_3_center_x_coordinates = []
+        model_3_center_y_coordinates = []
+
+        shape_losses_1 = []
+        shape_losses_3 = []
+
+        ground_truth_base_path = os.path.join(REAL_DATA_PATH, '04_critical_frames_subtracted_cropped', f'case_{case}')
+        first_frame_number, num_frames = find_case_info(ground_truth_base_path)
+        ground_truth_pointset = get_real_world_ground_truth_pointset(case, 'ordered')
+
+        input_info_1 = get_real_world_input_pointset(case, num_input_frames, offset, data_type_1)
+        input_info_3 = get_real_world_input_pointset(case, num_input_frames, offset, data_type_3)
+
+        if output_video:
+            distance, height = get_final_video_size(case)
+            video_size = (575 * 3 + 80, 520)
+            # video_size = ((228 + CROP_SIZE) * 2 + 50, 1040)
+            # (1150 * 2 + 50, 1040)
+            output_video = cv2.VideoWriter(os.path.join(save_path, f'Test Case_{case}.MP4'), CODEC, fps, video_size)
+
+            frames_savepath = create_directory(os.path.join(save_path, f'Test Case {case}'))
+            background_image_1 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
+            background_image_3 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
+
+            ground_truth_image = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', f'timestep_{first_frame_number}.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
+            ground_truth_image = Image.fromarray(cv2.resize(ground_truth_image, dsize=(575, 520)))
+
+            merged = Image.new(mode="RGB", size=video_size, color=(255, 255, 255))
+            merged.paste(im=ground_truth_image, box=(0, 0))
+            merged.paste(im=ground_truth_image, box=(575 + 40, 0))
+            merged.paste(im=ground_truth_image, box=(575 * 2 + 80, 0))
+            merged = np.array(merged)
+            cv2.imwrite(os.path.join(frames_savepath, f'timestep_{0}.jpg'), merged)
+
+            for i in range(20):
+                output_video.write(merged)
+
+            for timestep in range(0, num_input_frames * offset, offset):
+                ground_truth_image = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', f'timestep_{first_frame_number + timestep}.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
+                ground_truth_image = Image.fromarray(cv2.resize(ground_truth_image, dsize=(575, 520)))
+
+                merged = Image.new(mode="RGB", size=video_size, color=(255, 255, 255))
+                merged.paste(im=ground_truth_image, box=(0, 0))
+                merged.paste(im=ground_truth_image, box=(575 + 40, 0))
+                merged.paste(im=ground_truth_image, box=(575 * 2 + 80, 0))
+                merged = np.array(merged)
+                cv2.imwrite(os.path.join(frames_savepath, f'timestep_{timestep}.jpg'), merged)
+                output_video.write(merged)
+
+        for timestep in tqdm(range(offset * num_input_frames, num_frames, offset)):
+            predicted_pointset_1 = real_model_1.predict(input_info_1)[0]
+            predicted_pointset_3 = real_model_3.predict(input_info_3)[0]
+
+            center_loss_1, shape_loss_1, center_coordinates_1 = get_center_and_shape_loss(np.array(ground_truth_pointset[timestep], dtype='float32'), predicted_pointset_1[0])
+            center_loss_3, shape_loss_3, center_coordinates_3 = get_center_and_shape_loss(np.array(ground_truth_pointset[timestep], dtype='float32'), predicted_pointset_3[0])
+
+            ground_truth_center_x_coordinates.append(center_coordinates_1[0])
+            ground_truth_center_y_coordinates.append(center_coordinates_1[1])
+
+            model_1_center_x_coordinates.append(center_coordinates_1[2])
+            model_1_center_y_coordinates.append(center_coordinates_1[3])
+
+            model_3_center_x_coordinates.append(center_coordinates_3[2])
+            model_3_center_y_coordinates.append(center_coordinates_3[3])
+
+            chamfer_loss_1 = get_cd_loss_func(np.array([ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_1)
+            chamfer_loss_3 = get_cd_loss_func(np.array([ground_truth_pointset[timestep]], dtype='float32'), predicted_pointset_3)
+
+            timesteps.append(timestep)
+
+            chamfer_losses_1.append(chamfer_loss_1)
+            chamfer_losses_3.append(chamfer_loss_3)
+
+            shape_losses_1.append(shape_loss_1)
+            shape_losses_3.append(shape_loss_3)
+
+            center_losses_1.append(center_loss_1)
+            center_losses_3.append(center_loss_3)
+
+            if output_video:
+                pixel_coordinates_1 = convert_to_pixel_coordinates(predicted_pointset_1[0], distance, height)
+                cv2.fillPoly(img=background_image_1, pts=[pixel_coordinates_1], color=(47, 164, 193))
+
+                pixel_coordinates_3 = convert_to_pixel_coordinates(predicted_pointset_3[0], distance, height)
+                cv2.fillPoly(img=background_image_3, pts=[pixel_coordinates_3], color=(47, 164, 193))
+
+                # concatenate with ground truth image for comparison
+                ground_truth_image = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', f'timestep_{first_frame_number + timestep}.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
+                ground_truth_image = Image.fromarray(cv2.resize(ground_truth_image, dsize=(575, 520)))
+
+                merged = Image.new(mode="RGB", size=video_size, color=(255, 255, 255))
+                merged.paste(im=ground_truth_image, box=(0, 0))
+                merged.paste(im=Image.fromarray(cv2.resize(background_image_1, dsize=(575, 520))), box=(575 + 40, 0))
+                merged.paste(im=Image.fromarray(cv2.resize(background_image_3, dsize=(575, 520))), box=(575 * 2 + 80, 0))
+                merged = np.array(merged)
+
+                cv2.imwrite(os.path.join(frames_savepath, f'timestep_{timestep}.jpg'), merged)
+                output_video.write(merged)
+
+                del background_image_1, background_image_3
+
+                background_image_1 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
+                background_image_3 = cv2.imread(os.path.join(REAL_DATA_PATH, '02_critical_frames', f'case_{case}', 'timestep_0.jpg'), cv2.COLOR_BGR2RGB)[height - CROP_SIZE:height - CROP_SIZE + 1040, (1920 - distance - 228):(1920 - distance + CROP_SIZE)]
+
+            input_info_1 = update_input_pointset(input_info_1, predicted_pointset_1)
+            input_info_3 = update_input_pointset(input_info_3, predicted_pointset_3)
+
+        if output_video:
+            output_video.release()
+            cv2.destroyAllWindows()
+
+        # Loss Graph (Chamfer Distance)
+        plt.plot(timesteps, chamfer_losses_1, label=f'{data_type_1}')
+        plt.plot(timesteps, chamfer_losses_3, label=f'{data_type_3}')
+
+        plt.xlabel('Timestep')
+        plt.ylabel('Position Error')
+        plt.legend()
+        plt.savefig(os.path.join(chamfer_graph_save_path, 'Test Case {}.png'.format(case)), dpi=600)
+        plt.clf()
+
+        # Loss Graph (Shape Loss)
+        plt.plot(timesteps, shape_losses_1, label=f'{data_type_1}')
+        plt.plot(timesteps, shape_losses_3, label=f'{data_type_3}')
+
+        plt.xlabel('Timestep')
+        plt.ylabel('Shape Error')
+        plt.legend()
+        plt.savefig(os.path.join(shape_loss_graph_save_path, 'Test Case {}.png'.format(case)), dpi=600)
+        plt.clf()
+
+        # Loss Graph (Center Loss)
+        plt.plot(timesteps, center_losses_1, label=f'{data_type_1}')
+        plt.plot(timesteps, center_losses_3, label=f'{data_type_3}')
+
+        plt.xlabel('Timestep')
+        plt.ylabel('Center Error')
+        plt.legend()
+        plt.savefig(os.path.join(center_loss_graph_save_path, 'Test Case {}.png'.format(case)), dpi=600)
+        plt.clf()
+
+        # Center Trajectory
+        plt.axis([0, 1, 0, 1])
+        plt.scatter(model_1_center_x_coordinates, model_1_center_y_coordinates, label=f'{data_type_1}')
+        plt.scatter(model_3_center_x_coordinates, model_3_center_y_coordinates, label=f'{data_type_3}')
+        plt.scatter(ground_truth_center_x_coordinates, ground_truth_center_y_coordinates, label='Ground Truth')
+
+        plt.xlabel('X')
+        plt.ylabel('Y')
+        plt.legend()
+        plt.savefig(os.path.join(center_trajectory_save_path, 'Test Case {}.png'.format(case)), dpi=600)
+        plt.clf()
+
+        # Update Global Losses for Average
+        global_chamfer_losses_1 += np.array(chamfer_losses_1[:COMPARE_LENGTH])
+        global_chamfer_losses_3 += np.array(chamfer_losses_3[:COMPARE_LENGTH])
+
+        global_shape_losses_1 += np.array(shape_losses_1[:COMPARE_LENGTH])
+        global_shape_losses_3 += np.array(shape_losses_3[:COMPARE_LENGTH])
+
+        global_center_losses_1 += np.array(center_losses_1[:COMPARE_LENGTH])
+        global_center_losses_3 += np.array(center_losses_3[:COMPARE_LENGTH])
+
+    # Average Loss Graph - First COMPARE_LENGTH Frames
+    global_chamfer_losses_1 /= len(REAL_WORLD_TEST_CASES)
+    global_chamfer_losses_3 /= len(REAL_WORLD_TEST_CASES)
+
+    plt.plot(timesteps[:COMPARE_LENGTH], global_chamfer_losses_1.tolist(), label=f'{data_type_1}')
+    plt.plot(timesteps[:COMPARE_LENGTH], global_chamfer_losses_3.tolist(), label=f'{data_type_3}')
+
+    plt.xlabel('Timestep')
+    plt.ylabel('Position Error')
+    plt.legend()
+    plt.savefig(os.path.join(chamfer_graph_save_path, '../..', 'Average Position Error.png'), dpi=600)
+    plt.clf()
+
+    np.save(os.path.join(chamfer_graph_save_path, '../..', 'PositionError_1.npy'), global_chamfer_losses_1)
+    np.save(os.path.join(chamfer_graph_save_path, '../..', 'PositionError_3.npy'), global_chamfer_losses_3)
+
+    # Average Loss Graph - First 30 Frames
+    plt.plot(timesteps[:30], global_chamfer_losses_1.tolist()[:30], label=f'{data_type_1}')
+    plt.plot(timesteps[:30], global_chamfer_losses_3.tolist()[:30], label=f'{data_type_3}')
+
+    plt.xlabel('Timestep')
+    plt.ylabel('Average Position Error')
+    plt.legend()
+    plt.savefig(os.path.join(chamfer_graph_save_path, '../..', 'Average Position Error (First 30).png'), dpi=600)
+    plt.clf()
+
+    # Average Shape Loss Graph - First COMPARE_LENGTH Frames
+    global_shape_losses_1 /= len(REAL_WORLD_TEST_CASES)
+    global_shape_losses_3 /= len(REAL_WORLD_TEST_CASES)
+
+    plt.plot(timesteps[:COMPARE_LENGTH], global_shape_losses_1.tolist(), label=f'{data_type_1}')
+    plt.plot(timesteps[:COMPARE_LENGTH], global_shape_losses_3.tolist(), label=f'{data_type_3}')
+
+    plt.xlabel('Timestep')
+    plt.ylabel('Shape Error')
+    plt.legend()
+    plt.savefig(os.path.join(shape_loss_graph_save_path, '../..', 'Average Shape Error.png'), dpi=600)
+    plt.clf()
+
+    np.save(os.path.join(shape_loss_graph_save_path, '../..', 'ShapeError_1.npy'), global_shape_losses_1)
+    np.save(os.path.join(shape_loss_graph_save_path, '../..', 'ShapeError_3.npy'), global_shape_losses_3)
+
+    # Average Shape Loss Graph - First 30 Frames
+    plt.plot(timesteps[:30], global_shape_losses_1.tolist()[:30], label=f'{data_type_1}')
+    plt.plot(timesteps[:30], global_shape_losses_3.tolist()[:30], label=f'{data_type_3}')
+
+    plt.xlabel('Timestep')
+    plt.ylabel('Average Shape Error')
+    plt.legend()
+    plt.savefig(os.path.join(shape_loss_graph_save_path, '../..', 'Average Shape Error (First 30).png'), dpi=600)
+    plt.clf()
+
+    # Average Center Loss Graph - First COMPARE_LENGTH Frames
+    global_center_losses_1 /= len(REAL_WORLD_TEST_CASES)
+    global_center_losses_3 /= len(REAL_WORLD_TEST_CASES)
+
+    plt.plot(timesteps[:COMPARE_LENGTH], global_center_losses_1.tolist(), label=f'{data_type_1}')
+    plt.plot(timesteps[:COMPARE_LENGTH], global_center_losses_3.tolist(), label=f'{data_type_3}')
+
+    plt.xlabel('Timestep')
+    plt.ylabel('Average Center Loss')
+    plt.legend()
+    plt.savefig(os.path.join(center_loss_graph_save_path, '../..', 'Average Center Error.png'), dpi=600)
+    plt.clf()
+
+    # Average Center Loss Graph - First 30 Frames
+    plt.plot(timesteps[:30], global_center_losses_1.tolist()[:30], label=f'{data_type_1}')
+    plt.plot(timesteps[:30], global_center_losses_3.tolist()[:30], label=f'{data_type_3}')
+
+    plt.xlabel('Timestep')
+    plt.ylabel('Average Center Loss')
+    plt.legend()
+    plt.savefig(os.path.join(center_loss_graph_save_path, '../..', 'Average Center Error (First 30).png'), dpi=600)
     plt.clf()

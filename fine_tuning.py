@@ -2,45 +2,38 @@ import argparse
 from tensorflow.keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
 from common.Utils import create_directory
 from loss import *
-from prediction_models import *
+from misc.model import *
 import matplotlib.pyplot as plt
-from common.Constants import RANDOM_SEED
 import numpy as np
-from common.Utils import load_json, write_real_model_info
+from common.Utils import write_real_model_info
 import random
 from tensorflow.keras.models import load_model
-
-# ========================= For Reproducibility ================================
-
-os.environ['PYTHONHASHSEED'] = str(RANDOM_SEED)
-os.environ['TF_DETERMINISTIC_OPS'] = '1'
-tf.random.set_seed(RANDOM_SEED)
-np.random.seed(RANDOM_SEED)
-random.seed(RANDOM_SEED)
 
 # ========================= Model Constants ====================================
 
 parser = argparse.ArgumentParser('Fine Tuning Model')
 parser.add_argument('--epochs', required=False, default=200)
 parser.add_argument('--batch_size', required=False, default=32)
-parser.add_argument('--patience', required=False, default=40)
+parser.add_argument('--patience', required=False, default=15)
 parser.add_argument('--lr', required=False, default=0.0001, help='Must be 1/10 of original lr')
 
 # Loading Model Related
-parser.add_argument('--model_type', required=False, default='lstm', choices=['lstm', 'global_pointnet', 'local_pointnet'])
-parser.add_argument('--retrain_ver', required=False, default=45)
-parser.add_argument('--data_type', required=False, default='sorted', choices=['unordered', 'ordered', 'sorted'])
+parser.add_argument('--model_type', required=False, default='global_pointnet', choices=['lstm', 'global_pointnet', 'local_pointnet'])
+parser.add_argument('--seed', required=False, default=2)
+parser.add_argument('--data_type', required=False, default='unordered', choices=['unordered', 'ordered', 'sorted'])
 parser.add_argument('--data_offset', required=False, default=2)
-parser.add_argument('--num_input_frames', required=False, default=3)
+parser.add_argument('--num_input_frames', required=False, default=5)
 parser.add_argument('--num_output_frames', required=False, default=8)
-parser.add_argument('--loss_type', required=False, default='mse', choices=['chamfer', 'mse', 'chamfer_and_shape', 'chamfer_and_mae'])
-parser.add_argument('--shape_weight', required=False, default=0)
+parser.add_argument('--loss_type', required=False, default='chamfer', choices=['chamfer', 'mse', 'chamfer_and_shape', 'chamfer_and_mae'])
+parser.add_argument('--retrain_scope', required=False, default='lstm', choices=['full', 'lstm', 'lstm_last', 'lstm + global extractor'])
 
-# Output Model Related
-parser.add_argument('--ver', required=False, default=1)
-parser.add_argument('--retrain_scope', required=False, default='full', choices=['full', 'lstm', 'lstm_last', 'lstm + global extractor'])
-
+# ========================= For Reproducibility ================================
 FLAGS = parser.parse_args()
+os.environ['PYTHONHASHSEED'] = str(1)
+os.environ['TF_DETERMINISTIC_OPS'] = '1'
+tf.random.set_seed(FLAGS.seed)
+np.random.seed(FLAGS.seed)
+random.seed(FLAGS.seed)
 
 BATCH_SIZE = int(FLAGS.batch_size)
 EPOCHS = int(FLAGS.epochs)
@@ -48,21 +41,19 @@ PATIENCE = int(FLAGS.patience)
 LEARNING_RATE = float(FLAGS.lr)
 
 MODEL_TYPE = FLAGS.model_type
-RETRAIN_VERSION = int(FLAGS.retrain_ver)
+SEED = FLAGS.seed
 DATA_TYPE = FLAGS.data_type
 DATA_OFFSET = int(FLAGS.data_offset)
 NUM_OUTPUT = int(FLAGS.num_output_frames)
 NUM_INPUT = int(FLAGS.num_input_frames)
-MODEL_VERSION = int(FLAGS.ver)
 LOSS_TYPE = FLAGS.loss_type
-SHAPE_WEIGHT = float(FLAGS.shape_weight)
 RETRAIN_SCOPE = FLAGS.retrain_scope
 
-BASE_PATH = create_directory(os.path.join('./result', MODEL_TYPE, f'version_{RETRAIN_VERSION}', 'fine_tuning', f'version_{MODEL_VERSION}'))
+BASE_PATH = create_directory(os.path.join('./result', MODEL_TYPE, f'{MODEL_TYPE}-{NUM_INPUT}', f'seed_{SEED}', 'fine_tuning'))
 
 print('========================= Preparing Model =========================\n')
 
-model = load_model(filepath=os.path.join('result', f'{MODEL_TYPE}', f'version_{RETRAIN_VERSION}', f'{MODEL_TYPE}_model.h5'), compile=False)
+model = load_model(filepath=os.path.join('./result', MODEL_TYPE, f'{MODEL_TYPE}-{NUM_INPUT}', f'seed_{SEED}', f'{MODEL_TYPE}_model.h5'), compile=False)
 
 if RETRAIN_SCOPE == 'lstm':
     for layer in model.layers:
@@ -75,6 +66,8 @@ if RETRAIN_SCOPE == 'lstm':
             layer.trainable = False
         else:
             layer.trainable = True
+    model.summary()
+    single_frame_prediction_model.summary()
 
 elif RETRAIN_SCOPE == 'lstm_last':
     for layer in model.layers:
@@ -126,11 +119,9 @@ else:
 if LOSS_TYPE == 'chamfer':
     first_loss = get_cd_loss_func_for_first
     base_loss = get_cd_loss_func
-
 elif LOSS_TYPE == 'mse':
     first_loss = mse_for_first
     base_loss = 'mse'
-
 elif LOSS_TYPE == 'chamfer_and_mae':
     first_loss = chamfer_and_mae_for_first
     base_loss = chamfer_and_mae
@@ -150,54 +141,29 @@ model.compile(loss={'tf_op_layer_output1': first_loss,
 
 print('========================= Loading Data =========================\n')
 
-x_train, ptr = load_json(f'data/real_world/preprocessed_data/offset_{DATA_OFFSET}_input_{NUM_INPUT}_output_{NUM_OUTPUT}/x_train_pred_{DATA_TYPE}.json')
-ptr.close()
-y_train, ptr = load_json(f'data/real_world/preprocessed_data/offset_{DATA_OFFSET}_input_{NUM_INPUT}_output_{NUM_OUTPUT}/y_train_pred_{DATA_TYPE}.json')
-ptr.close()
+x_train = np.load(f'data/real_world/preprocessed_data/offset_{DATA_OFFSET}_input_{NUM_INPUT}_output_{NUM_OUTPUT}/x_train_pred_{DATA_TYPE}.npy')
+y_train = np.load(f'data/real_world/preprocessed_data/offset_{DATA_OFFSET}_input_{NUM_INPUT}_output_{NUM_OUTPUT}/y_train_pred_{DATA_TYPE}.npy')
 
-x_val, ptr = load_json(f'data/real_world/preprocessed_data/offset_{DATA_OFFSET}_input_{NUM_INPUT}_output_{NUM_OUTPUT}/x_val_pred_{DATA_TYPE}.json')
-ptr.close()
-y_val, ptr = load_json(f'data/real_world/preprocessed_data/offset_{DATA_OFFSET}_input_{NUM_INPUT}_output_{NUM_OUTPUT}/y_val_pred_{DATA_TYPE}.json')
-ptr.close()
+x_val = np.load(f'data/real_world/preprocessed_data/offset_{DATA_OFFSET}_input_{NUM_INPUT}_output_{NUM_OUTPUT}/x_val_pred_{DATA_TYPE}.npy')
+y_val = np.load(f'data/real_world/preprocessed_data/offset_{DATA_OFFSET}_input_{NUM_INPUT}_output_{NUM_OUTPUT}/y_val_pred_{DATA_TYPE}.npy')
 
-y_train_0 = np.array(y_train[0])
-y_train_1 = np.array(y_train[1])
-y_train_2 = np.array(y_train[2])
-y_train_3 = np.array(y_train[3])
-y_train_4 = np.array(y_train[4])
-y_train_5 = np.array(y_train[5])
-y_train_6 = np.array(y_train[6])
-y_train_7 = np.array(y_train[7])
-y_train = [y_train_0, y_train_1, y_train_2, y_train_3, y_train_4, y_train_5, y_train_6, y_train_7]
-
-y_val_0 = np.array(y_val[0])
-y_val_1 = np.array(y_val[1])
-y_val_2 = np.array(y_val[2])
-y_val_3 = np.array(y_val[3])
-y_val_4 = np.array(y_val[4])
-y_val_5 = np.array(y_val[5])
-y_val_6 = np.array(y_val[6])
-y_val_7 = np.array(y_val[7])
-y_val = [y_val_0, y_val_1, y_val_2, y_val_3, y_val_4, y_val_5, y_val_6, y_val_7]
-
-x_train = np.array(x_train)
-x_val = np.array(x_val)
+y_train = [y_train[i] for i in range(NUM_OUTPUT)]
+y_val = [y_val[i] for i in range(NUM_OUTPUT)]
 
 print('========================= Training Model =========================\n')
 
 write_real_model_info(path=os.path.join(BASE_PATH),
                       model=single_frame_prediction_model,
-                      simulation_base_model_ver=RETRAIN_VERSION,
+                      simulation_seed=SEED,
                       retrain_scope=RETRAIN_SCOPE,
                       model_type=MODEL_TYPE,
                       data_type=DATA_TYPE,
                       loss_type=MODEL_TYPE,
-                      shape_weight=SHAPE_WEIGHT,
                       offset=DATA_OFFSET,
                       train_input=x_train.shape,
-                      train_output=(NUM_OUTPUT, ) + y_train_0.shape,
+                      train_output=(NUM_OUTPUT, ) + y_train[0].shape,
                       val_input=x_val.shape,
-                      val_output=(NUM_OUTPUT, ) + y_val_0.shape,
+                      val_output=(NUM_OUTPUT, ) + y_val[0].shape,
                       batch_size=BATCH_SIZE,
                       patience=PATIENCE,
                       lr=LEARNING_RATE)
