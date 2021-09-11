@@ -22,11 +22,9 @@ or generate and preprocess the entire synthetic dataset from scratch to reproduc
 The entire process of generating the synthetic dataset takes a couple of hours and consumes approximately 12.43GB.
 
 **2-1. Using small dataset**
-
-    # unzip synthetic_dataset_1.zip, synthetic_dataset_2.zip and place it under the root directory of this repo
-
-    mv ./synthetic_dataset_1 ./data/synthetic_dataset
-    mv ./synthetic_dataset_2/y_train_pred_ordered.json ./data/synthetic_dataset/input_4/offset_4_num_pred_8/y_train_pred_ordered.json
+    # download synthetic_dataset_1.zip, synthetic_dataset_2.zip to the root directory of this repo 
+    unzip synthetic_dataset_1.zip -d ./data/synthetic_dataset
+    unzip synthetic_dataset_2.zip -d ./data/synthetic_dataset/preprocessed_data/input_4/offset_4_num_pred_8
 
 **2-2. Generating the entire Synthetic Dataset**
 
@@ -34,9 +32,8 @@ The entire process of generating the synthetic dataset takes a couple of hours a
     python3 data/simulation/preprocess_code/preprocess.py    # preprocess data
 
 **3. Preparing Real-World Dataset**
-
-    # unzip real_world_dataset.zip and place it under the root directory of this repo
-    mv ./real_world_dataset ./data/real_world_dataset
+    # download real_world_dataset.zip to the root directory of this repo
+    unzip real_world_dataset.zip -d ./data/real_world_dataset
 
 **4. Train**
 <br/>To train TP-Net with the parameters that we used for getting the best performance, execute the following command.
