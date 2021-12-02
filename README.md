@@ -28,8 +28,8 @@ The implementation is based on python 3.6, tensorflow 2.3.0., CUDA 10.1, and cuD
 
 After downloading and unzipping each dataset, place each folder as below. <br/>
 
-    data/preprocessed_data/synthetic_dataset
-    data/preprocessed_data/real_world_dataset
+    data/synthetic_dataset/preprocessed_data
+    data/real_world_dataset/preprocessed_data
 <br/>  
 
 **2-2 (Alternative) Generating the entire Synthetic Dataset** <br/>
