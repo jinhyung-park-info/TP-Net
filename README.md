@@ -5,6 +5,10 @@
 To download our preprint version of the paper, click <a href="https://drive.google.com/file/d/1Am3lB8sVDifOFJHNVLQ8TjDgo_pEaqdr/view?usp=sharing" target="_blank">here</a>. 
 <br/>(The paper will also be uploaded in arXiv by December 7th, 2021.)
 
+<p align="center">
+  <img width="720" height="250" src="https://github.com/jinhyung-park-info/TP-Net/blob/main/utils/teaser.png">
+</p>
+
 ### Introduction
 This repository accompanies the paper "Flexible Networks for Learning Physical Dynamics of Deformable Objects", which is currenty under review for publication.<br/>
 We release the code to train, test, and visualize the result of our model.<br/>
