@@ -8,7 +8,7 @@ To download our preprint version of the paper, click <a href="https://drive.goog
 ### Introduction
 
 <p align="center">
-  <img width="720" height="250" src="https://github.com/jinhyung-park-info/TP-Net/blob/main/utils/teaser.png">
+  <img width="720" height="250" src="https://github.com/jinhyung-park-info/TP-Net/blob/main/utils/main_teaser.png">
 </p>
 
 This repository accompanies the paper "Flexible Networks for Learning Physical Dynamics of Deformable Objects", which is currenty under review for publication.<br/>
