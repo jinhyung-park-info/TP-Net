@@ -1,12 +1,12 @@
-# Real-World-Softbody
+# Flexible Networks for Learning Physical Dynamics of Deformable Objects (2021)
 
-**By Paper ID : 2591**
+**By <a href="http://github.com/jinhyung426/" target="_blank">Jinhyung Park</a>, <a href="https://github.com/dlehgo14" target="_blank">Dohae Lee</a>, In-Kwon Lee from Yonsei University (Seoul, Korea)**<br/>
 
+To download our preprint version of the paper, click <a href="https://drive.google.com/file/d/1Am3lB8sVDifOFJHNVLQ8TjDgo_pEaqdr/view?usp=sharing" target="_blank">here</a>, which is also uploaded in arXiv.
 
 ### Introduction
-This repository accompanies the paper "Flexible Networks for Learning Physical Dynamics of Deformable Objects", submitted to the main track of "AAAI 2022" with paper id 2591.<br/>
+This repository accompanies the paper "Flexible Networks for Learning Physical Dynamics of Deformable Objects", which is currenty under review for publication.<br/>
 We release the code to train, test, and visualize the result of our model.<br/>
-Note that the data attached in this repository is a small subset of the original dataset we used for training, due to file size limit.<br/>
 The implementation is based on python 3.6, tensorflow 2.3.0., CUDA 10.1, and cuDNN 7.6.1 <br/>
 
 ### How To Run
