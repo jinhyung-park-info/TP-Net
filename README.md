@@ -2,7 +2,7 @@
 
 **By <a href="http://github.com/jinhyung426/" target="_blank">Jinhyung Park</a>, <a href="https://github.com/dlehgo14" target="_blank">Dohae Lee</a>, In-Kwon Lee from Yonsei University (Seoul, Korea)**<br/>
 
-To download our paper from arXiv (preprint), click <a href="https://arxiv.org/pdf/2112.03728" target="_blank">here</a>. 
+To download our paper from arXiv (preprint), click <a href="https://arxiv.org/pdf/2112.03728" target="_blank">here</a>. <br/>
 The paper is currently submitted for review.
 
 ### Introduction
