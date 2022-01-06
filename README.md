@@ -1,4 +1,4 @@
-# Flexible Networks for Learning Physical Dynamics of Deformable Objects (2021)
+# Flexible Networks for Learning Physical Dynamics of Deformable Objects (2022)
 
 **By <a href="http://github.com/jinhyung426/" target="_blank">Jinhyung Park</a>, <a href="https://github.com/dlehgo14" target="_blank">Dohae Lee</a>, In-Kwon Lee from Yonsei University (Seoul, Korea)**<br/>
 
